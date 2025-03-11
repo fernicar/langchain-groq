@@ -1,5 +1,5 @@
 groq
-langchain
+langchain==0.1.16
 langchain-core
 langchain-groq
 PySide6

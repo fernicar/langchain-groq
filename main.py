@@ -2,9 +2,9 @@ import sys
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                               QHBoxLayout, QTextEdit, QLabel, QPushButton, 
                               QCheckBox, QFrame, QTabWidget, QSpinBox, QSplitter,
-                              QComboBox, QSizePolicy, QToolBar, QLineEdit, QFileDialog, QMessageBox)
+                              QComboBox, QSizePolicy, QToolBar, QLineEdit)  # Added QLineEdit
 from PySide6.QtCore import Qt, QSize
-from PySide6.QtGui import QFont, QColor, QPalette, QAction
+from PySide6.QtGui import QFont, QColor, QPalette
 from dotenv import load_dotenv
 import os
 from langchain_groq import ChatGroq
@@ -107,9 +107,6 @@ class NarrativeGUI(QMainWindow):
     def __init__(self):
         super().__init__()
         
-        # Add file path tracking
-        self.current_file_path = None
-        
         # Initialize system prompt from prompt manager
         self.prompt_manager = SystemPromptManager()
         self.system_prompt = self.prompt_manager.get_active_prompt()
@@ -178,9 +175,6 @@ class NarrativeGUI(QMainWindow):
         
         # Apply initial theme
         self.toggle_theme(self.is_dark_mode)
-        
-        # Setup menu bar
-        self.setup_menu_bar()
 
     def setup_main_frame(self):
         self.main_frame = QFrame(self)
@@ -194,12 +188,6 @@ class NarrativeGUI(QMainWindow):
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
         left_layout.setContentsMargins(0, 0, 0, 0)
-        
-        # Add instruction label
-        instruction_label = QLabel("Story Development (Blue text is a proposal - decide if you want to keep it as part of the story)")
-        instruction_label.setWordWrap(True)
-        instruction_label.setStyleSheet("font-weight: bold;")
-        left_layout.addWidget(instruction_label)
         
         # Story display
         story_frame = QFrame()
@@ -226,13 +214,6 @@ class NarrativeGUI(QMainWindow):
         thinking_layout.setContentsMargins(0, 0, 0, 0)
         self.thinking_display = QTextEdit()
         self.thinking_display.setReadOnly(True)
-        self.thinking_display.setPlaceholderText(
-            "Thinking Process Display:\n\n"
-            "• AI's reasoning process will appear here in XML tags\n"
-            "• Example: <think>Analyzing story context and planning next scene...</think>\n"
-            "• System notifications and status updates also show here\n"
-            "• Model responses are parsed to highlight reasoning in a different color"
-        )
         self.thinking_display.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         thinking_layout.addWidget(self.thinking_display)
         tab_widget.addTab(thinking_tab, "Thinking Process")
@@ -243,14 +224,6 @@ class NarrativeGUI(QMainWindow):
         conversation_layout.setContentsMargins(0, 0, 0, 0)
         self.conversation_log = QTextEdit()
         self.conversation_log.setReadOnly(True)
-        self.conversation_log.setPlaceholderText(
-            "Conversation History:\n\n"
-            "• Full dialogue between you and the AI will be recorded here\n"
-            "• User inputs are prefixed with 'User:'\n"
-            "• AI responses are prefixed with 'Assistant:'\n"
-            "• AI's thinking process is highlighted in a distinct color\n"
-            "• Helps track the evolution of your story development"
-        )
         self.conversation_log.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         conversation_layout.addWidget(self.conversation_log)
         tab_widget.addTab(conversation_tab, "Conversation Logs")
@@ -263,15 +236,7 @@ class NarrativeGUI(QMainWindow):
         # API Monitor display
         self.api_monitor = QTextEdit()
         self.api_monitor.setReadOnly(True)
-        self.api_monitor.setPlaceholderText(
-            "API Monitor Display:\n\n"
-            "• Shows all API interactions with the AI model\n"
-            "• Displays model name, timestamp, and token usage\n"
-            "• Helps track API costs and performance\n"
-            "• Records any API errors or warnings\n"
-            "• Use 'Clear Monitor' button to reset the display\n"
-            "• Useful for debugging and optimization"
-        )
+        self.api_monitor.setPlaceholderText("API calls will be displayed here...")
         self.api_monitor.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         api_layout.addWidget(self.api_monitor)
         
@@ -575,28 +540,10 @@ class NarrativeGUI(QMainWindow):
         )
 
     def update_story_display(self):
-        """Update the story display with proper formatting"""
         self.story_display.clear()
         cursor = self.story_display.textCursor()
         
-        # Show load prompt if no content
-        if not self.canon_validated and not self.current_narrative:
-            format = self.story_display.currentCharFormat()
-            theme = 'dark' if self.is_dark_mode else 'light'
-            format.setForeground(QColor(self.colors[theme]['fg']))
-            cursor.setCharFormat(format)
-            cursor.insertText("Load your story file using File → Load Story... (Ctrl+O)\n\n"
-                "Story Development Display:\n\n"
-                "• Black text represents validated/saved story content\n"
-                "• Blue text shows current AI proposal or your edits\n"
-                "• Edit blue proposals in the 'Edit Blue' tab below\n"
-                "• Use 'Save Blue & Continue' to validate blue text\n"
-                "• Start writing your story by using the 'Edit Blue' tab\n"
-                "• Or let AI start by using 'Save Blue & Continue'"
-            )
-            return
-        
-        # Insert validated canon in black
+        # Insert validated canon in black/grey
         for piece in self.canon_validated:
             format = self.story_display.currentCharFormat()
             theme = 'dark' if self.is_dark_mode else 'light'
@@ -604,7 +551,7 @@ class NarrativeGUI(QMainWindow):
             cursor.setCharFormat(format)
             cursor.insertText(piece + "\n\n")
         
-        # Insert current narrative in blue
+        # Insert current narrative in blue/light blue
         if self.current_narrative:
             if self.canon_validated:
                 cursor.insertText("─" * 40 + "\n\n")
@@ -802,7 +749,7 @@ class NarrativeGUI(QMainWindow):
         xml_label = QLabel("XML Tag:")
         toolbar.addWidget(xml_label)
         self.xml_tag_input = QLineEdit()
-        self.xml_tag_input.setPlaceholderText("User's tag name")
+        self.xml_tag_input.setPlaceholderText("Enter tag name")
         self.xml_tag_input.setMaximumWidth(100)
         toolbar.addWidget(self.xml_tag_input)
         
@@ -861,53 +808,23 @@ class NarrativeGUI(QMainWindow):
         """Setup the input tabs area"""
         self.input_tabs = QTabWidget()
         
-        # Tab 1: Edit Blue Proposal
-        edit_tab = QWidget()
-        edit_layout = QVBoxLayout(edit_tab)
-        self.edit_input = QTextEdit()
-        self.edit_input.setPlaceholderText(
-            "Edit Blue Proposal:\n\n"
-            "• Type or paste text here to modify the blue proposal\n"
-            "• Changes appear instantly in the preview panel above\n"
-            "• Use this tab to start your story or edit AI suggestions\n"
-            "• Switch to 'Save Blue && Continue' when ready to proceed\n"
-            "• Your edits are preserved when switching between tabs"
-        )
-        self.edit_input.textChanged.connect(self.update_blue_preview)
-        edit_layout.addWidget(self.edit_input)
-        self.input_tabs.addTab(edit_tab, "Edit Blue")
-        
-        # Tab 2: Continue next section
+        # Tab 1: Continue next section
         continue_tab = QWidget()
         continue_layout = QVBoxLayout(continue_tab)
         self.continue_input = QTextEdit()
-        self.continue_input.setPlaceholderText(
-            "Save Blue && Continue:\n\n"
-            "• Current blue text will be saved as permanent black text\n"
-            "• Type guidance here for the AI to continue the story\n"
-            "• Leave empty to let AI continue based on context alone\n"
-            "• AI will generate a new blue proposal as continuation\n"
-            "• Use XML tags to structure your guidance (optional)"
-        )
+        self.continue_input.setPlaceholderText("Input text to continue with current narrative...")
         continue_layout.addWidget(self.continue_input)
-        self.input_tabs.addTab(continue_tab, "Save Blue && Continue")
+        self.input_tabs.addTab(continue_tab, "Continue Next Section")
         
-        # Tab 3: Rewrite previous section
+        # Tab 2: Rewrite previous section
         rewrite_tab = QWidget()
         rewrite_layout = QVBoxLayout(rewrite_tab)
         self.rewrite_input = QTextEdit()
-        self.rewrite_input.setPlaceholderText(
-            "Discard Blue && Rewrite:\n\n"
-            "• Current blue proposal will be discarded\n"
-            "• Type guidance here for the AI to generate new content\n"
-            "• AI will provide a completely new blue proposal\n"
-            "• Useful when the current proposal needs major changes\n"
-            "• Previous black (saved) text remains unchanged"
-        )
+        self.rewrite_input.setPlaceholderText("Input text to rewrite the previous section...")
         rewrite_layout.addWidget(self.rewrite_input)
-        self.input_tabs.addTab(rewrite_tab, "Discard Blue && Rewrite")
+        self.input_tabs.addTab(rewrite_tab, "Rewrite Previous Section")
         
-        # Tab 4: Customize System Prompt (existing)
+        # Tab 3: Customize System Prompt
         system_tab = QWidget()
         system_layout = QVBoxLayout(system_tab)
         
@@ -937,156 +854,6 @@ class NarrativeGUI(QMainWindow):
         
         system_tab.setLayout(system_layout)
         self.input_tabs.addTab(system_tab, "Customize System Prompt")
-
-    def update_blue_preview(self):
-        """Update the preview panel's blue text in real-time"""
-        self.current_narrative = self.edit_input.toPlainText()
-        self.update_story_display()
-
-    def setup_menu_bar(self):
-        """Setup the application menu bar"""
-        menubar = self.menuBar()
-        
-        # File Menu
-        file_menu = menubar.addMenu('File')
-        
-        # Load Story action
-        load_action = QAction('Load Story...', self)
-        load_action.setShortcut('Ctrl+O')
-        load_action.triggered.connect(self.load_story)
-        file_menu.addAction(load_action)
-        
-        # Save Story action
-        save_action = QAction('Save Story', self)
-        save_action.setShortcut('Ctrl+S')
-        save_action.triggered.connect(self.save_story)
-        file_menu.addAction(save_action)
-        
-        # Save As action
-        save_as_action = QAction('Save Story As...', self)
-        save_as_action.setShortcut('Ctrl+Shift+S')
-        save_as_action.triggered.connect(lambda: self.save_story(save_as=True))
-        file_menu.addAction(save_as_action)
-
-    def load_story(self):
-        """Handle story file loading"""
-        file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Load Story",
-            "",
-            "Text Files (*.txt);;All Files (*.*)"
-        )
-        
-        if file_path:
-            try:
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    story_content = f.read()
-                
-                # Store file path
-                self.current_file_path = file_path
-                
-                # Clear existing content
-                self.canon_validated = []
-                self.current_narrative = ""
-                
-                # Split into meaningful chunks with minimum content
-                MIN_CHUNK_SIZE = 2000  # characters
-                raw_chunks = [chunk.strip() for chunk in story_content.split('\n\n') if chunk.strip()]
-                
-                meaningful_chunks = []
-                current_chunk = []
-                current_length = 0
-                
-                for chunk in raw_chunks:
-                    # Skip divider lines or very short content
-                    #if chunk.replace('-', '').strip() == '' or len(chunk) < 50:
-                    #    continue
-                    
-                    current_chunk.append(chunk)
-                    current_length += len(chunk)
-                    
-                    if current_length >= MIN_CHUNK_SIZE:
-                        meaningful_chunks.append('\n\n'.join(current_chunk))
-                        current_chunk = []
-                        current_length = 0
-                
-                # Add any remaining content as final chunk
-                if current_chunk:
-                    meaningful_chunks.append('\n\n'.join(current_chunk))
-                
-                # Store as validated canon
-                self.canon_validated = meaningful_chunks
-                
-                # Reset conversation memory
-                self.conversation.memory.clear()
-                
-                # Simulate conversation history with last chunks
-                for chunk in meaningful_chunks[-5:]:
-                    self.conversation.memory.chat_memory.add_user_message("Continue the story")
-                    self.conversation.memory.chat_memory.add_ai_message(chunk)
-                
-                # Update display
-                self.update_story_display()
-                
-                # Update window title and status
-                self.setWindowTitle(f"Narrative Collaboration System - {os.path.basename(file_path)}")
-                self.thinking_display.append(f"Loaded story from: {file_path}")
-                self.thinking_display.append("Previous content loaded as context for the AI.")
-                
-            except Exception as e:
-                QMessageBox.critical(self, "Error", f"Failed to load story: {str(e)}")
-
-    def save_story(self, save_as=False):
-        """Handle story saving"""
-        if save_as or not self.current_file_path:
-            file_path, _ = QFileDialog.getSaveFileName(
-                self,
-                "Save Story",
-                "",
-                "Text Files (*.txt);;All Files (*.*)"
-            )
-            if not file_path:
-                return
-            self.current_file_path = file_path
-        
-        try:
-            # Combine all validated content
-            story_content = '\n\n'.join(self.canon_validated)
-            
-            with open(self.current_file_path, 'w', encoding='utf-8') as f:
-                f.write(story_content)
-            
-            # Update window title
-            self.setWindowTitle(f"Narrative Collaboration System - {os.path.basename(self.current_file_path)}")
-            
-            # Update status
-            self.thinking_display.append(f"Story saved to: {self.current_file_path}")
-            
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to save story: {str(e)}")
-
-    def closeEvent(self, event):
-        """Handle application close event"""
-        if self.current_narrative:
-            reply = QMessageBox.question(
-                self,
-                'Unsaved Changes',
-                'There is an unsaved blue proposal. Do you want to save it before closing?',
-                QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
-                QMessageBox.Save
-            )
-
-            if reply == QMessageBox.Save:
-                # Add current narrative to canon and save
-                self.canon_validated.append(self.current_narrative)
-                self.save_story()
-                event.accept()
-            elif reply == QMessageBox.Discard:
-                event.accept()
-            else:  # Cancel
-                event.ignore()
-        else:
-            event.accept()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
