@@ -1,108 +1,173 @@
-Source: [Chatbot-with-Conversational-Memory-on-LangChain](https://replit.com/@GroqCloud/Chatbot-with-Conversational-Memory-on-LangChain)
+# Narrative Collaboration System
 
-#Groq LangChain Conversational Chatbot
+A Qt-based desktop application for collaborative story writing with AI assistance using the Groq API and LangChain framework.
 
-A simple application that allows users to interact with a conversational chatbot powered by LangChain. The application uses the Groq API to generate responses and leverages LangChain's [ConversationBufferWindowMemory](https://python.langchain.com/v0.1/docs/modules/memory/types/buffer_window/) to maintain a history of the conversation to provide context for the chatbot's responses.
-Features
+## Core Workflow
 
-- Conversational Interface: The application provides a conversational interface where users can ask questions or make statements, and the chatbot responds accordingly.
+The application manages story content in two states:
+- **Black Text**: Permanent, validated content that has been approved and saved
+- **Blue Text**: Current AI proposal or work in progress that hasn't been committed
 
-- Contextual Responses: The application maintains a history of the conversation, which is used to provide context for the chatbot's responses.
+### Main Interaction Modes
 
-- LangChain Integration: The chatbot is powered by the LangChain API, which uses advanced natural language processing techniques to generate human-like responses.
+1. **Edit Blue**
+   - Direct editing interface for modifying the current blue proposal
+   - Make precise adjustments to AI-generated text
+   - Fix specific words or phrases before committing
+   - Changes reflect instantly in the preview panel
 
-Usage
+2. **Save Blue & Continue**
+   - Two actions in one:
+     1. Converts current blue proposal to permanent black text
+     2. Generates new blue proposal based on your guidance
+   - Can provide specific instructions for the next section
+   - Leave guidance empty to let AI continue based on context
+   - Supports XML tags for structured instructions
 
-You will need to store a valid Groq API Key as a secret to proceed with this example. You can generate one for free [here](https://console.groq.com/keys).
+3. **Discard Blue & Rewrite**
+   - Completely removes current blue proposal from history
+   - Generates new alternative content based on your instructions
+   - Previous black (committed) text remains unchanged
+   - Useful when the current proposal needs complete replacement
+   - As if the discarded proposal never existed
 
-You can [fork and run this application on Replit](https://replit.com/@GroqCloud/Chatbot-with-Conversational-Memory-on-LangChain) or run it on the command line with python main.py
+### Story Development Process
 
+1. **Starting Point**
+   - Begin with either your own text or let AI generate initial content
+   - All new content appears in blue for review
 
-### For Windows Users:
-1. Right-click on **This PC** (or **Computer**) and select **Properties**.
-2. Go to **Advanced system settings**.
-3. Click on **Environment Variables**.
-4. Under **System variables**, click **New**.
-5. In the **New System Variable** window:
-   - For **Variable name**, enter `GROQ_API_KEY`.
-   - For **Variable value**, enter the user's API key.
-6. Click **OK** to save the changes.
+2. **Review and Iteration**
+   - Review blue proposals
+   - Choose one of three actions:
+     - Edit: Fine-tune the current blue text
+     - Save & Continue: Commit and progress
+     - Discard & Rewrite: Start fresh with new instructions
 
-### Using a `.env` File (Alternative Method):
-If the user prefers, they can use a `.env` file in their project directory to store the API key. Here's how:
-1. Create a `.env` file in the root of the project.
-2. Add the following line to the `.env` file:
-   ```
-   GROQ_API_KEY='your_api_key_here'
-   ```
-3. In the Python script, use a library like `python-dotenv` to load the environment variables from the `.env` file:
-   ```python
-   from dotenv import load_dotenv
-   import os
+3. **Content Management**
+   - Committed (black) text is saved to file
+   - Blue proposals can be edited until committed
+   - Clear separation between approved and proposed content
 
-   load_dotenv()
-   groq_api_key = os.environ['GROQ_API_KEY']
-   ```
+### Story Management
+- File operations (Open, Save, Save As)
+- Automatic story chunking for context management
+- Unsaved changes protection
+- Story preview with color-coded sections:
+  - Black: Committed/saved content
+  - Blue: Current proposal/work in progress
 
-### Important Notes:
-- The user should never share their API key publicly or hardcode it into their scripts.
-- If this is part of a larger application, consider providing instructions for different operating systems and environments (e.g., development, production).
+### Technical Features
+- LangChain integration with Groq API
+- Multiple AI model support:
+  - qwen-qwq-32b
+  - deepseek-r1-distill-qwen-32b
+  - deepseek-r1-distill-llama-70b
+  - mixtral-8x7b-32768
+  - llama-3.3-70b-versatile
+- Conversation buffer window memory (last 5 interactions)
+- XML tag support for structured input
+- JSON-based system prompt configuration
+- UTF-8 text encoding support
+- Spanish language interface and AI responses
 
-## main.py Script Documentation
+## Advanced Workflow
 
-The `main.py` script is the main entry point of the application. It sets up the Groq client, the Streamlit interface, and handles the chat interaction.
+### Story Continuation
+The application implements a sophisticated context management system:
 
-### How to Run
+1. **Loading Existing Stories**
+   - Load your existing story file (Ctrl+O)
+   - The system automatically processes the text into meaningful chunks
+   - The last 5 chunks are used to simulate a conversation history with the AI
+   - This simulated history provides context as if the story had been written in one session
 
-1. Ensure you have set up your Groq API key as described in the Usage section.
-2. Run the script using Python:
-   ```sh
-   python main.py
-   ```
+2. **Context Management**
+   - The application maintains a rolling window of the last 5 interactions
+   - When loading a story, the system creates artificial conversation turns:
+     - Each chunk is treated as if it was a "Continue the story" request
+     - The AI's responses are simulated using the actual story content
+   - This creates seamless continuation capability for:
+     - Stories written in previous sessions
+     - Stories written outside the application
+     - Collaborative works between multiple sessions
 
-### Script Details
+3. **Session Workflow**
+   - Start by loading your story file
+   - The system automatically reconstructs the conversation context
+   - Continue writing as if you never left the session
+   - All features (Edit Blue, Save & Continue, Rewrite) work seamlessly
+   - The AI maintains narrative consistency with previous content
 
-- **Groq API Key**: The script retrieves the Groq API key from the environment variables.
-- **Model**: The script uses the `deepseek-r1-distill-llama-70b` model.
-- **Chat Initialization**: The script initializes the Groq LangChain chat object and sets up the conversation.
-- **System Prompt**: The chatbot uses a system prompt to define its behavior as a friendly conversational chatbot.
-- **Conversational Memory**: The chatbot maintains a history of the last 5 messages to provide context for its responses.
-- **User Interaction**: The script enters a loop where it continuously prompts the user for input and generates responses using the Groq API.
+### Basic Workflow
+For new stories:
+   - Start with a blank slate
+   - Use Edit Blue tab to write initial content
+   - Or let AI generate the starting point
+   - Progress using Save Blue & Continue
+   - Use Discard Blue & Rewrite for revisions
+   - Save regularly (Ctrl+S)
 
-### Example Usage
+## Requirements
 
-```sh
+- Python 3.x
+- PySide6 (Qt for Python)
+- LangChain and LangChain Groq
+- Groq API access
+- python-dotenv
+- Additional dependencies:
+  - typing
+  - json
+  - datetime
+  - pathlib
+  - re
+  - argparse
+
+## Installation
+
+1. Clone the repository
+2. Install dependencies:
+```bash
+pip install PySide6 langchain langchain-groq python-dotenv
+```
+3. Create a `.env` file with your Groq API key:
+```
+GROQ_API_KEY=your_api_key_here
+```
+
+## Usage
+
+1. Run the application:
+```bash
 python main.py
 ```
 
-When you run the script, you will be greeted by the chatbot and can start asking questions or making statements. The chatbot will respond accordingly, leveraging the context of the conversation to provide relevant answers.
+2. Basic workflow:
+   - Start a new story or load existing one (Ctrl+O)
+   - Use the Edit Blue tab to write or modify content
+   - Use Save Blue & Continue to progress the story
+   - Use Discard Blue & Rewrite for major revisions
+   - Save your work regularly (Ctrl+S)
+   - Select your preferred AI model from the dropdown menu
 
-### Important Notes
+## Keyboard Shortcuts
+- Ctrl+O: Load Story
+- Ctrl+S: Save Story
+- Ctrl+Shift+S: Save Story As
 
-- Do not share your API key publicly or hardcode it into your scripts.
-- Consider providing instructions for different operating systems and environments if this is part of a larger application.
+## File Format
+- Saves stories as plain text (.txt) files
+- Uses UTF-8 encoding
+- Automatically chunks content for optimal AI context
 
-## Setting Up Dependencies
+## Configuration
+- System prompts are stored in `system_prompts.json`
+- Default system prompt in Spanish
+- Supports custom prompt creation and management
+- Configurable conversation memory window (default: 5 messages)
 
-The application requires several Python packages to run. These dependencies are listed in the `requirements.txt` file.
-
-### Installing Dependencies
-
-To install the required packages, use the following command:
-
-```sh
-pip install -r requirements.txt
-```
-
-This command will install all the packages listed in the `requirements.txt` file, ensuring that your environment is set up correctly to run the application.
-
-### requirements.txt File
-
-The `requirements.txt` file includes the following dependencies:
-
-- `groq`
-- `langchain==0.1.16`
-- `langchain-core`
-- `langchain-groq`
-
-Make sure to install these dependencies before running the `main.py` script to avoid any import errors or missing package issues.
+## Notes
+- Unsaved blue proposals will trigger a save prompt when closing
+- The application maintains conversation context for consistent story flow
+- Large stories are automatically chunked for better AI context management
+- Interface and AI responses are in Spanish by default

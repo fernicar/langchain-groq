@@ -1,4 +1,6 @@
 groq
-langchain==0.1.16
+langchain
 langchain-core
 langchain-groq
+PySide6
+python-dotenv

@@ -4,6 +4,10 @@ vs.code-workspace
 *.log
 activate.lnk
 vs.code-workspace
+system_prompts.json
+*.txt
+backup/
+obsolete/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
