@@ -8,7 +8,6 @@ from PySide6.QtGui import QFont, QColor, QPalette, QAction
 from dotenv import load_dotenv
 import os
 from langchain_groq import ChatGroq
-from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferWindowMemory
 import re
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, HumanMessagePromptTemplate
@@ -21,23 +20,26 @@ from datetime import datetime, timezone
 from pathlib import Path
 import typing as t
 from groq import Groq
+from langchain_core.runnables import RunnableWithMessageHistory
+from langchain_core.chat_history import BaseChatMessageHistory
+from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
 
 class APIMonitorCallback(BaseCallbackHandler):
   def __init__(self, api_monitor):
     super().__init__()
     self.api_monitor = api_monitor
-      
+
   def on_llm_start(self, serialized, prompts, **kwargs):
     self.api_monitor.append(f"RAW API REQUEST:")
     self.api_monitor.append(f"serialized: {serialized}")
     self.api_monitor.append(f"prompts: {prompts}")
     self.api_monitor.append(f"kwargs: {kwargs}")
-      
+
   def on_llm_end(self, response, **kwargs):
     self.api_monitor.append(f"RAW API RESPONSE:")
     self.api_monitor.append(f"response: {response}")
     self.api_monitor.append(f"kwargs: {kwargs}")
-      
+
   def on_llm_error(self, error, **kwargs):
     self.api_monitor.append(f"RAW API ERROR:")
     self.api_monitor.append(f"error: {error}")
@@ -623,28 +625,48 @@ class NarrativeGUI(QMainWindow):
       max_tokens=self.max_tokens,
       streaming=False,
       verbose=True,
-      callbacks=[callback]  # Add the custom callback
+      callbacks=[callback] # Add the custom callback
     )
 
-    system_prompt = """Eres un colaborador narrativo. Tu papel es ayudar a crear historias.
-    Mantén las respuestas de narrativa solamente, sin explicaciones, listas para publicar."""
+    # Create the chat prompt template
+    prompt = ChatPromptTemplate.from_messages([
+      SystemMessage(content=self.system_prompt),
+      MessagesPlaceholder(variable_name="history"),
+      HumanMessagePromptTemplate.from_template("{input}")
+    ])
 
-    memory = ConversationBufferWindowMemory(
-      k=5,
-      return_messages=True,
-      memory_key="history"
+    # Create the runnable chain
+    chain = prompt | llm
+
+    # Create message history store
+    class WindowBufferHistory(BaseChatMessageHistory):
+      def __init__(self):
+        self._messages = [] # Use _messages as internal storage
+        self.max_tokens = 5 # Keep last 5 message pairs
+
+      def add_message(self, message):
+        self._messages.append(message)
+        # Keep only last 5 pairs of messages
+        if len(self._messages) > 10: # 5 pairs = 10 messages
+          self._messages = self._messages[-10:]
+
+      def clear(self):
+        self._messages = []
+
+      @property
+      def messages(self) -> List[BaseMessage]:
+        return self._messages
+
+    # Create the runnable with message history
+    self.conversation = RunnableWithMessageHistory(
+      chain,
+      lambda session_id: WindowBufferHistory(),
+      input_messages_key="input",
+      history_messages_key="history"
     )
 
-    self.conversation = ConversationChain(
-      llm=llm,
-      memory=memory,
-      verbose=True,
-      prompt=ChatPromptTemplate.from_messages([
-        SystemMessage(content=system_prompt),
-        MessagesPlaceholder(variable_name="history"),
-        HumanMessagePromptTemplate.from_template("{input}")
-      ])
-    )
+    # Store session ID for this instance
+    self.session_id = "default_session"
 
   def update_story_display(self):
     """Update the story display with proper formatting"""
@@ -730,16 +752,22 @@ class NarrativeGUI(QMainWindow):
         if xml_tag:
           user_input = self.wrap_text_with_xml(user_input, xml_tag)
 
-        # Get response from LLM
-        response = self.conversation.predict(input=user_input)
-
+        # Invoke the chain with message history
+        response = self.conversation.invoke(
+          {"input": user_input},
+          config={"configurable": {"session_id": self.session_id}}
+        )
+        
+        # Extract the response content
+        response_text = response.content if hasattr(response, 'content') else str(response)
+        
         # Update conversation log
-        self.update_conversation_log(user_input, response)
+        self.update_conversation_log(user_input, response_text)
 
         # Extract narrative content
         narrative_parts = [part.strip()
-                 for part in re.split(r'<think>.*?</think>', response, flags=re.DOTALL)
-                 if part.strip()]
+          for part in re.split(r'<think>.*?</think>', response_text, flags=re.DOTALL)
+          if part.strip()]
         self.current_narrative = ' '.join(narrative_parts)
 
         # Update story display
@@ -749,7 +777,7 @@ class NarrativeGUI(QMainWindow):
         self.edit_input.setPlainText(self.current_narrative)
 
         # Extract thinking content
-        think_blocks = re.findall(r'<think>(.*?)</think>', response, flags=re.DOTALL)
+        think_blocks = re.findall(r'<think>(.*?)</think>', response_text, flags=re.DOTALL)
         thinking_content = '\n\n'.join(block.strip() for block in think_blocks)
         self.thinking_display.setText(thinking_content)
 
