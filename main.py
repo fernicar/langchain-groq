@@ -189,6 +189,12 @@ class NarrativeGUI(QMainWindow):
         left_layout = QVBoxLayout(left_widget)
         left_layout.setContentsMargins(0, 0, 0, 0)
         
+        # Add instruction label
+        instruction_label = QLabel("Story Development (Blue text is a proposal - decide if you want to keep it as part of the story)")
+        instruction_label.setWordWrap(True)
+        instruction_label.setStyleSheet("font-weight: bold;")
+        left_layout.addWidget(instruction_label)
+        
         # Story display
         story_frame = QFrame()
         story_layout = QVBoxLayout(story_frame)
