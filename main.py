@@ -157,6 +157,7 @@ class NarrativeGUI(QMainWindow):
         
         # Setup input tabs
         self.setup_input_tabs()
+        self.input_tabs.currentChanged.connect(self.on_tab_changed)  # Add this line
         
         # Add widgets to main splitter
         main_splitter.addWidget(display_widget)
@@ -591,11 +592,16 @@ class NarrativeGUI(QMainWindow):
             return text
         return f"<{tag}>{text}</{tag}>"
 
+    def on_tab_changed(self, index: int):
+        """Handle tab changes"""
+        # You can add specific logic here if needed when tabs change
+        pass
+
     def send_message(self):
         """Handle sending messages based on selected tab"""
         current_tab = self.input_tabs.currentIndex()
         
-        if current_tab == 2:  # Custom System Prompt tab
+        if current_tab == 3:  # Custom System Prompt tab
             new_system_prompt = self.system_input.toPlainText().strip()
             if new_system_prompt:
                 self.system_prompt = new_system_prompt
@@ -606,11 +612,13 @@ class NarrativeGUI(QMainWindow):
         
         try:
             # Get input based on current tab
-            if current_tab == 0:  # Continue next section
+            if current_tab == 0:  # Edit Blue tab
+                user_input = self.edit_input.toPlainText().strip()
+            elif current_tab == 1:  # Continue next section
                 user_input = self.continue_input.toPlainText().strip()
                 if self.current_narrative:
                     self.canon_validated.append(self.current_narrative)
-            elif current_tab == 1:  # Rewrite previous section
+            elif current_tab == 2:  # Rewrite previous section
                 user_input = self.rewrite_input.toPlainText().strip()
             
             if user_input:
@@ -652,6 +660,9 @@ class NarrativeGUI(QMainWindow):
                 # Update story display
                 self.update_story_display()
                 
+                # NEW: Update Edit Blue tab with the current narrative
+                self.edit_input.setPlainText(self.current_narrative)
+                
                 # Extract thinking content
                 think_blocks = re.findall(r'<think>(.*?)</think>', response, flags=re.DOTALL)
                 thinking_content = '\n\n'.join(block.strip() for block in think_blocks)
@@ -659,8 +670,10 @@ class NarrativeGUI(QMainWindow):
                 
                 # Clear input of current tab
                 if current_tab == 0:
-                    self.continue_input.clear()
+                    self.edit_input.clear()
                 elif current_tab == 1:
+                    self.continue_input.clear()
+                elif current_tab == 2:
                     self.rewrite_input.clear()
             
         except Exception as e:
@@ -830,7 +843,16 @@ class NarrativeGUI(QMainWindow):
         """Setup the input tabs area"""
         self.input_tabs = QTabWidget()
         
-        # Tab 1: Continue next section (renamed)
+        # Tab 1: Edit Blue Proposal (new)
+        edit_tab = QWidget()
+        edit_layout = QVBoxLayout(edit_tab)
+        self.edit_input = QTextEdit()
+        self.edit_input.setPlaceholderText("Edit the current blue proposal here...")
+        self.edit_input.textChanged.connect(self.update_blue_preview)
+        edit_layout.addWidget(self.edit_input)
+        self.input_tabs.addTab(edit_tab, "Edit Blue")
+        
+        # Tab 2: Continue next section (existing)
         continue_tab = QWidget()
         continue_layout = QVBoxLayout(continue_tab)
         self.continue_input = QTextEdit()
@@ -838,7 +860,7 @@ class NarrativeGUI(QMainWindow):
         continue_layout.addWidget(self.continue_input)
         self.input_tabs.addTab(continue_tab, "Save Blue && Continue")
         
-        # Tab 2: Rewrite previous section (renamed)
+        # Tab 3: Rewrite previous section (existing)
         rewrite_tab = QWidget()
         rewrite_layout = QVBoxLayout(rewrite_tab)
         self.rewrite_input = QTextEdit()
@@ -846,7 +868,7 @@ class NarrativeGUI(QMainWindow):
         rewrite_layout.addWidget(self.rewrite_input)
         self.input_tabs.addTab(rewrite_tab, "Discard Blue && Rewrite")
         
-        # Tab 3: Customize System Prompt (unchanged)
+        # Tab 4: Customize System Prompt (existing)
         system_tab = QWidget()
         system_layout = QVBoxLayout(system_tab)
         
@@ -876,6 +898,11 @@ class NarrativeGUI(QMainWindow):
         
         system_tab.setLayout(system_layout)
         self.input_tabs.addTab(system_tab, "Customize System Prompt")
+
+    def update_blue_preview(self):
+        """Update the preview panel's blue text in real-time"""
+        self.current_narrative = self.edit_input.toPlainText()
+        self.update_story_display()
 
     def setup_menu_bar(self):
         """Setup the application menu bar"""
