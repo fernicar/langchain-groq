@@ -184,9 +184,6 @@ class NarrativeGUI(QMainWindow):
     # Create main layout
     main_layout = QVBoxLayout()
 
-    # Setup toolbar with LLM controls
-    self.setup_toolbar()
-
     # Create main vertical splitter
     main_splitter = QSplitter(Qt.Vertical)
 
@@ -198,7 +195,7 @@ class NarrativeGUI(QMainWindow):
 
     # Setup input tabs
     self.setup_input_tabs()
-    self.input_tabs.currentChanged.connect(self.on_tab_changed) # Add this line
+    self.input_tabs.currentChanged.connect(self.on_tab_changed)
 
     # Add widgets to main splitter
     main_splitter.addWidget(display_widget)
@@ -215,7 +212,11 @@ class NarrativeGUI(QMainWindow):
     central_widget.setLayout(main_layout)
     self.setCentralWidget(central_widget)
 
-    # Now initialize LLM after UI is setup
+    # Setup toolbar and add it to the bottom
+    toolbar = self.setup_toolbar()
+    self.addToolBar(Qt.ToolBarArea.BottomToolBarArea, toolbar)
+
+    # Now initialize LLM after toolbar is setup
     self.initialize_llm()
 
     # Apply initial theme
@@ -902,7 +903,7 @@ class NarrativeGUI(QMainWindow):
   def setup_toolbar(self):
     """Setup the application toolbar"""
     toolbar = QToolBar()
-    self.addToolBar(toolbar)
+    # self.addToolBar(toolbar)
 
     # Model selector
     model_label = QLabel("Model: ")
@@ -1005,6 +1006,7 @@ class NarrativeGUI(QMainWindow):
     send_button = QPushButton("Send")
     send_button.clicked.connect(self.send_message)
     toolbar.addWidget(send_button)
+    return toolbar
 
   def setup_input_tabs(self):
     """Setup the input tabs area"""
