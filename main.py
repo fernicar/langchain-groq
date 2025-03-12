@@ -2,7 +2,8 @@ import sys
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                               QHBoxLayout, QTextEdit, QLabel, QPushButton, 
                               QCheckBox, QFrame, QTabWidget, QSpinBox, QSplitter,
-                              QComboBox, QSizePolicy, QToolBar, QLineEdit, QFileDialog, QMessageBox)
+                              QComboBox, QSizePolicy, QToolBar, QLineEdit, QFileDialog, 
+                              QMessageBox, QDoubleSpinBox)
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QFont, QColor, QPalette, QAction
 from dotenv import load_dotenv
@@ -139,6 +140,10 @@ class NarrativeGUI(QMainWindow):
             }
         }
         
+        # Initialize default values for LLM parameters
+        self.temperature = 0.7
+        self.max_tokens = 4096
+        
         # Setup UI
         self.setWindowTitle("Narrative Collaboration System")
         self.resize(1200, 800)
@@ -146,7 +151,7 @@ class NarrativeGUI(QMainWindow):
         # Create main layout
         main_layout = QVBoxLayout()
         
-        # Setup toolbar
+        # Setup toolbar with LLM controls
         self.setup_toolbar()
         
         # Create main vertical splitter
@@ -166,7 +171,7 @@ class NarrativeGUI(QMainWindow):
         main_splitter.addWidget(display_widget)
         main_splitter.addWidget(self.input_tabs)
         
-        # Set initial sizes (2:1 ratio for display:input)
+        # Set initial sizes
         main_splitter.setSizes([2 * self.height() // 3, self.height() // 3])
         
         # Add main splitter to layout
@@ -177,7 +182,7 @@ class NarrativeGUI(QMainWindow):
         central_widget.setLayout(main_layout)
         self.setCentralWidget(central_widget)
         
-        # Initialize LLM
+        # Now initialize LLM after UI is setup
         self.initialize_llm()
         
         # Apply initial theme
@@ -338,6 +343,24 @@ class NarrativeGUI(QMainWindow):
         self.font_size_spinner.setValue(self.font_size)
         self.font_size_spinner.valueChanged.connect(self.update_font_size)
         config_layout.addWidget(self.font_size_spinner)
+        
+        # Temperature control
+        temp_label = QLabel("Temperature:")
+        config_layout.addWidget(temp_label)
+        self.temperature_spinner = QSpinBox()
+        self.temperature_spinner.setRange(0, 100)  # Will be divided by 100 to get 0.0-1.0
+        self.temperature_spinner.setValue(70)  # Default 0.7
+        self.temperature_spinner.valueChanged.connect(self.on_temperature_changed)
+        config_layout.addWidget(self.temperature_spinner)
+        
+        # Max tokens control
+        tokens_label = QLabel("Max Tokens:")
+        config_layout.addWidget(tokens_label)
+        self.max_tokens_spinner = QSpinBox()
+        self.max_tokens_spinner.setRange(1, 32768)  # Adjust range based on model limits
+        self.max_tokens_spinner.setValue(4096)  # Default value
+        self.max_tokens_spinner.valueChanged.connect(self.on_max_tokens_changed)
+        config_layout.addWidget(self.max_tokens_spinner)
         
         # Send button
         send_button = QPushButton("Send")
@@ -558,7 +581,10 @@ class NarrativeGUI(QMainWindow):
         
         llm = ChatGroq(
             api_key=os.environ['GROQ_API_KEY'],
-            model_name=selected_model
+            model_name=selected_model,
+            temperature=self.temperature,
+            max_tokens=self.max_tokens,
+            streaming=False
         )
         
         system_prompt = """Eres un colaborador narrativo. Tu papel es ayudar a crear historias.
@@ -832,6 +858,33 @@ class NarrativeGUI(QMainWindow):
         self.model_selector.addItems(available_models)
         self.model_selector.currentTextChanged.connect(self.on_model_changed)
         toolbar.addWidget(self.model_selector)
+        
+        # Add separator
+        toolbar.addSeparator()
+        
+        # Temperature control
+        temp_label = QLabel("Temperature: ")
+        toolbar.addWidget(temp_label)
+        
+        self.temperature_spinner = QDoubleSpinBox()
+        self.temperature_spinner.setRange(0.0, 1.0)
+        self.temperature_spinner.setSingleStep(0.1)
+        self.temperature_spinner.setValue(self.temperature)
+        self.temperature_spinner.valueChanged.connect(self.on_temperature_changed)
+        toolbar.addWidget(self.temperature_spinner)
+        
+        # Add separator
+        toolbar.addSeparator()
+        
+        # Max tokens control
+        tokens_label = QLabel("Max Tokens: ")
+        toolbar.addWidget(tokens_label)
+        
+        self.max_tokens_spinner = QSpinBox()
+        self.max_tokens_spinner.setRange(1, 32768)
+        self.max_tokens_spinner.setValue(self.max_tokens)
+        self.max_tokens_spinner.valueChanged.connect(self.on_max_tokens_changed)
+        toolbar.addWidget(self.max_tokens_spinner)
         
         # Add wider separator
         separator = QWidget()
@@ -1127,6 +1180,16 @@ class NarrativeGUI(QMainWindow):
                 event.ignore()
         else:
             event.accept()
+
+    def on_temperature_changed(self, value):
+        """Handle temperature change"""
+        self.temperature = value
+        self.initialize_llm()
+
+    def on_max_tokens_changed(self, value):
+        """Handle max tokens change"""
+        self.max_tokens = value
+        self.initialize_llm()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
