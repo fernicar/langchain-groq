@@ -19,6 +19,9 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 import typing as t
+from groq import Groq
+import os
+from typing import List
 
 class SystemPromptManager:
     DEFAULT_PROMPT = """Eres un colaborador narrativo. Tu papel es ayudar a crear historias mientras muestras tu proceso de pensamiento.
@@ -790,6 +793,30 @@ class NarrativeGUI(QMainWindow):
         self.conversation_log.setTextCursor(cursor)
         self.conversation_log.ensureCursorVisible()
 
+    def get_available_models(self) -> List[str]:
+        """Fetch available models from Groq API"""
+        try:
+            client = Groq(api_key=os.environ['GROQ_API_KEY'])
+            models = client.models.list()
+            # Filter and sort models based on our needs
+            available_models = []
+            for model in models.data:  # Access the data attribute of the response
+                model_id = model.id if hasattr(model, 'id') else str(model)
+                if 'whisper' not in model_id.lower():
+                    available_models.append(model_id)
+            return sorted(available_models, reverse=True)
+        except Exception as e:
+            if hasattr(self, 'api_monitor'):
+                self.api_monitor.append(f"Error fetching models: {str(e)}\n")
+            # Fallback to hardcoded models if API fails
+            return [
+                'qwen-qwq-32b',
+                'deepseek-r1-distill-qwen-32b',
+                'deepseek-r1-distill-llama-70b',
+                'mixtral-8x7b-32768',
+                'llama-3.3-70b-versatile'
+            ]
+
     def setup_toolbar(self):
         """Setup the application toolbar"""
         toolbar = QToolBar()
@@ -800,13 +827,9 @@ class NarrativeGUI(QMainWindow):
         toolbar.addWidget(model_label)
         
         self.model_selector = QComboBox()
-        self.model_selector.addItems([
-            'qwen-qwq-32b',
-            'deepseek-r1-distill-qwen-32b',
-            'deepseek-r1-distill-llama-70b',
-            'mixtral-8x7b-32768',
-            'llama-3.3-70b-versatile'
-        ])
+        # Fetch models from API
+        available_models = self.get_available_models()
+        self.model_selector.addItems(available_models)
         self.model_selector.currentTextChanged.connect(self.on_model_changed)
         toolbar.addWidget(self.model_selector)
         
