@@ -689,7 +689,7 @@ class NarrativeGUI(QMainWindow):
       cursor.insertText(
         "Load your story file using File → Load Story... (Ctrl+O)\n\n"
         "Story Development Display:\n\n"
-        "• Black text represents validated/saved story content\n"
+        "• Black/White text represents validated/saved story content\n"
         "• Blue text shows current AI proposal or your edits\n"
         "• Edit blue proposals in the 'Edit Blue' tab below\n"
         "• Use 'Save Blue & Continue' to validate blue text\n"
@@ -698,7 +698,7 @@ class NarrativeGUI(QMainWindow):
       )
       return
 
-    # Insert validated canon in black
+    # Insert validated canon in Black/White
     for piece in self.canon_validated:
       format = self.story_display.currentCharFormat()
       theme = 'dark' if self.is_dark_mode else 'light'
@@ -1043,7 +1043,7 @@ class NarrativeGUI(QMainWindow):
     self.continue_input = QTextEdit()
     self.continue_input.setPlaceholderText(
       "Save Blue & Continue:\n\n"
-      "• Current blue text will be saved as permanent black text\n"
+      "• Current blue text will be saved as permanent Black/White text\n"
       "• Type guidance here for the AI to continue the story\n"
       "• Leave empty to let AI continue based on context alone\n"
       "• AI will generate a new blue proposal as continuation\n"
@@ -1062,7 +1062,7 @@ class NarrativeGUI(QMainWindow):
       "• Type guidance here for the AI to generate new content\n"
       "• AI will provide a completely new blue proposal\n"
       "• Useful when the current proposal needs major changes\n"
-      "• Previous black (saved) text remains unchanged"
+      "• Previous Black/White (saved) text remains unchanged"
     )
     rewrite_layout.addWidget(self.rewrite_input)
     self.input_tabs.addTab(rewrite_tab, "Discard Blue && Rewrite")
