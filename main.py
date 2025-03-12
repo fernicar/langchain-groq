@@ -999,6 +999,29 @@ class NarrativeGUI(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to save story: {str(e)}")
 
+    def closeEvent(self, event):
+        """Handle application close event"""
+        if self.current_narrative:
+            reply = QMessageBox.question(
+                self,
+                'Unsaved Changes',
+                'There is an unsaved blue proposal. Do you want to save it before closing?',
+                QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
+                QMessageBox.Save
+            )
+
+            if reply == QMessageBox.Save:
+                # Add current narrative to canon and save
+                self.canon_validated.append(self.current_narrative)
+                self.save_story()
+                event.accept()
+            elif reply == QMessageBox.Discard:
+                event.accept()
+            else:  # Cancel
+                event.ignore()
+        else:
+            event.accept()
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = NarrativeGUI()
