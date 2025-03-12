@@ -571,6 +571,15 @@ class NarrativeGUI(QMainWindow):
     # Force update of story display to refresh colors
     self.update_story_display()
 
+    # Update Edit Blue input color
+    self.edit_input.setStyleSheet(f"""
+      QTextEdit {{
+        color: {self.colors[theme]['current']};
+        background-color: {self.colors[theme]['bg']};
+        border: 1px solid {self.colors[theme]['fg']};
+      }}
+    """)
+
   def initialize_llm(self):
     """Initialize the language model and conversation chain"""
     load_dotenv()
@@ -965,6 +974,15 @@ class NarrativeGUI(QMainWindow):
       "• Switch to 'Save Blue && Continue' when ready to proceed\n"
       "• Your edits are preserved when switching between tabs"
     )
+    # Set text color to match the preview blue color
+    theme = 'dark' if self.is_dark_mode else 'light'
+    self.edit_input.setStyleSheet(f"""
+      QTextEdit {{
+        color: {self.colors[theme]['current']};
+        background-color: {self.colors[theme]['bg']};
+        border: 1px solid {self.colors[theme]['fg']};
+      }}
+    """)
     self.edit_input.textChanged.connect(self.update_blue_preview)
     edit_layout.addWidget(self.edit_input)
     self.input_tabs.addTab(edit_tab, "Edit Blue")
