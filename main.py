@@ -2,9 +2,9 @@ import sys
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                               QHBoxLayout, QTextEdit, QLabel, QPushButton, 
                               QCheckBox, QFrame, QTabWidget, QSpinBox, QSplitter,
-                              QComboBox, QSizePolicy, QToolBar, QLineEdit)  # Added QLineEdit
+                              QComboBox, QSizePolicy, QToolBar, QLineEdit, QFileDialog, QMessageBox)
 from PySide6.QtCore import Qt, QSize
-from PySide6.QtGui import QFont, QColor, QPalette
+from PySide6.QtGui import QFont, QColor, QPalette, QAction
 from dotenv import load_dotenv
 import os
 from langchain_groq import ChatGroq
@@ -107,6 +107,9 @@ class NarrativeGUI(QMainWindow):
     def __init__(self):
         super().__init__()
         
+        # Add file path tracking
+        self.current_file_path = None
+        
         # Initialize system prompt from prompt manager
         self.prompt_manager = SystemPromptManager()
         self.system_prompt = self.prompt_manager.get_active_prompt()
@@ -175,6 +178,9 @@ class NarrativeGUI(QMainWindow):
         
         # Apply initial theme
         self.toggle_theme(self.is_dark_mode)
+        
+        # Setup menu bar
+        self.setup_menu_bar()
 
     def setup_main_frame(self):
         self.main_frame = QFrame(self)
@@ -546,10 +552,20 @@ class NarrativeGUI(QMainWindow):
         )
 
     def update_story_display(self):
+        """Update the story display with proper formatting"""
         self.story_display.clear()
         cursor = self.story_display.textCursor()
         
-        # Insert validated canon in black/grey
+        # Show load prompt if no content
+        if not self.canon_validated and not self.current_narrative:
+            format = self.story_display.currentCharFormat()
+            theme = 'dark' if self.is_dark_mode else 'light'
+            format.setForeground(QColor(self.colors[theme]['fg']))
+            cursor.setCharFormat(format)
+            cursor.insertText("Load your story file using File → Load Story... (Ctrl+O)")
+            return
+        
+        # Insert validated canon in black
         for piece in self.canon_validated:
             format = self.story_display.currentCharFormat()
             theme = 'dark' if self.is_dark_mode else 'light'
@@ -557,7 +573,7 @@ class NarrativeGUI(QMainWindow):
             cursor.setCharFormat(format)
             cursor.insertText(piece + "\n\n")
         
-        # Insert current narrative in blue/light blue
+        # Insert current narrative in blue
         if self.current_narrative:
             if self.canon_validated:
                 cursor.insertText("─" * 40 + "\n\n")
@@ -860,6 +876,108 @@ class NarrativeGUI(QMainWindow):
         
         system_tab.setLayout(system_layout)
         self.input_tabs.addTab(system_tab, "Customize System Prompt")
+
+    def setup_menu_bar(self):
+        """Setup the application menu bar"""
+        menubar = self.menuBar()
+        
+        # File Menu
+        file_menu = menubar.addMenu('File')
+        
+        # Load Story action
+        load_action = QAction('Load Story...', self)
+        load_action.setShortcut('Ctrl+O')
+        load_action.triggered.connect(self.load_story)
+        file_menu.addAction(load_action)
+        
+        # Save Story action
+        save_action = QAction('Save Story', self)
+        save_action.setShortcut('Ctrl+S')
+        save_action.triggered.connect(self.save_story)
+        file_menu.addAction(save_action)
+        
+        # Save As action
+        save_as_action = QAction('Save Story As...', self)
+        save_as_action.setShortcut('Ctrl+Shift+S')
+        save_as_action.triggered.connect(lambda: self.save_story(save_as=True))
+        file_menu.addAction(save_as_action)
+
+    def load_story(self):
+        """Handle story file loading"""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Load Story",
+            "",
+            "Text Files (*.txt);;All Files (*.*)"
+        )
+        
+        if file_path:
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    story_content = f.read()
+                
+                # Store file path
+                self.current_file_path = file_path
+                
+                # Clear existing content
+                self.canon_validated = []
+                self.current_narrative = ""
+                
+                # Split content into chunks (by paragraphs)
+                chunks = [chunk.strip() for chunk in story_content.split('\n\n') if chunk.strip()]
+                
+                # Store as validated canon
+                self.canon_validated = chunks
+                
+                # Reset conversation memory
+                self.conversation.memory.clear()
+                
+                # Simulate conversation history with last chunks
+                for chunk in chunks[-5:]:
+                    self.conversation.memory.chat_memory.add_user_message("Continue the story")
+                    self.conversation.memory.chat_memory.add_ai_message(chunk)
+                
+                # Update display
+                self.update_story_display()
+                
+                # Update window title
+                self.setWindowTitle(f"Narrative Collaboration System - {os.path.basename(file_path)}")
+                
+                # Update status in thinking display
+                self.thinking_display.append(f"Loaded story from: {file_path}")
+                self.thinking_display.append("Previous content loaded as context for the AI.")
+                
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to load story: {str(e)}")
+
+    def save_story(self, save_as=False):
+        """Handle story saving"""
+        if save_as or not self.current_file_path:
+            file_path, _ = QFileDialog.getSaveFileName(
+                self,
+                "Save Story",
+                "",
+                "Text Files (*.txt);;All Files (*.*)"
+            )
+            if not file_path:
+                return
+            self.current_file_path = file_path
+        
+        try:
+            # Combine all validated content
+            story_content = '\n\n'.join(self.canon_validated)
+            
+            with open(self.current_file_path, 'w', encoding='utf-8') as f:
+                f.write(story_content)
+            
+            # Update window title
+            self.setWindowTitle(f"Narrative Collaboration System - {os.path.basename(self.current_file_path)}")
+            
+            # Update status
+            self.thinking_display.append(f"Story saved to: {self.current_file_path}")
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to save story: {str(e)}")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
