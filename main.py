@@ -13,15 +13,39 @@ from langchain.memory import ConversationBufferWindowMemory
 import re
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, HumanMessagePromptTemplate
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from langchain_core.callbacks import BaseCallbackHandler
 import argparse
-from typing import Optional
+from typing import Optional, List
 import json
 from datetime import datetime, timezone
 from pathlib import Path
 import typing as t
 from groq import Groq
-import os
-from typing import List
+
+class APIMonitorCallback(BaseCallbackHandler):
+  def __init__(self, api_monitor):
+    super().__init__()
+    self.api_monitor = api_monitor
+      
+  def on_llm_start(self, serialized, prompts, **kwargs):
+    self.api_monitor.append(f"RAW API REQUEST:")
+    self.api_monitor.append(f"serialized: {serialized}")
+    self.api_monitor.append(f"prompts: {prompts}")
+    self.api_monitor.append(f"kwargs: {kwargs}")
+      
+  def on_llm_end(self, response, **kwargs):
+    self.api_monitor.append(f"RAW API RESPONSE:")
+    self.api_monitor.append(f"response: {response}")
+    self.api_monitor.append(f"kwargs: {kwargs}")
+      
+  def on_llm_error(self, error, **kwargs):
+    self.api_monitor.append(f"RAW API ERROR:")
+    self.api_monitor.append(f"error: {error}")
+    self.api_monitor.append(f"kwargs: {kwargs}")
+
+  def on_llm_new_token(self, token: str, **kwargs):
+    """Called when streaming is enabled and a new token is received"""
+    self.api_monitor.append(f"Token: {token}")
 
 class SystemPromptManager:
   DEFAULT_PROMPT = """Eres un colaborador narrativo. Tu papel es ayudar a crear historias mientras muestras tu proceso de pensamiento.
@@ -41,19 +65,21 @@ class SystemPromptManager:
   def _load_or_create_config(self) -> dict:
     """Load existing config or create default one"""
     if self.config_path.exists():
-      with open(self.config_path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+      try:
+        with open(self.config_path, 'r', encoding='utf-8') as f:
+          return json.load(f)
+      except json.JSONDecodeError:
+        # If JSON is invalid, create new default config
+        return self._create_default_config()
+    return self._create_default_config()
 
-    # Get the default prompt from the currently running instance
-    default_prompt = getattr(self, 'DEFAULT_PROMPT',
-      """""")
-
-    # Create default config
+  def _create_default_config(self) -> dict:
+    """Create default configuration"""
     default_config = {
       "active_prompt": "default",
       "prompts": {
         "default": {
-          "content": default_prompt,
+          "content": self.DEFAULT_PROMPT,
           "created_at": datetime.now(timezone.utc).isoformat(),
           "last_used": datetime.now(timezone.utc).isoformat()
         }
@@ -586,13 +612,18 @@ class NarrativeGUI(QMainWindow):
 
     # Get the currently selected model from the combo box
     selected_model = self.model_selector.currentText()
-
+    
+    # Create custom callback
+    callback = APIMonitorCallback(self.api_monitor)
+    
     llm = ChatGroq(
       api_key=os.environ['GROQ_API_KEY'],
       model_name=selected_model,
       temperature=self.temperature,
       max_tokens=self.max_tokens,
-      streaming=False
+      streaming=False,
+      verbose=True,
+      callbacks=[callback]  # Add the custom callback
     )
 
     system_prompt = """Eres un colaborador narrativo. Tu papel es ayudar a crear historias.
@@ -699,26 +730,8 @@ class NarrativeGUI(QMainWindow):
         if xml_tag:
           user_input = self.wrap_text_with_xml(user_input, xml_tag)
 
-        # Log the prompt being sent
-        messages = self.conversation.memory.load_memory_variables({})["history"]
-        prompt_log = "=== API Call ===\n"
-        prompt_log += f"System: {self.system_prompt}\n\n"
-
-        for message in messages:
-          role = "Human" if isinstance(message, HumanMessage) else "Assistant"
-          prompt_log += f"{role}: {message.content}\n\n"
-
-        prompt_log += f"Human: {user_input}\n"
-        prompt_log += "=" * 50 + "\n\n"
-
-        self.api_monitor.append(prompt_log)
-
         # Get response from LLM
         response = self.conversation.predict(input=user_input)
-
-        # Log the response
-        self.api_monitor.append(f"Response:\n{response}\n\n")
-        self.api_monitor.append("=" * 50 + "\n\n")
 
         # Update conversation log
         self.update_conversation_log(user_input, response)
