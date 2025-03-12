@@ -227,6 +227,14 @@ class NarrativeGUI(QMainWindow):
         thinking_layout.setContentsMargins(0, 0, 0, 0)
         self.thinking_display = QTextEdit()
         self.thinking_display.setReadOnly(True)
+        # Update Thinking Process placeholder
+        self.thinking_display.setPlaceholderText(
+            "Thinking Process Display:\n\n"
+            "• AI's reasoning process will appear here in XML tags\n"
+            "• Example: <think>Analyzing story context and planning next scene...</think>\n"
+            "• System notifications and status updates also show here\n"
+            "• Model responses are parsed to highlight reasoning in a different color"
+        )
         self.thinking_display.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         thinking_layout.addWidget(self.thinking_display)
         tab_widget.addTab(thinking_tab, "Thinking Process")
@@ -237,6 +245,15 @@ class NarrativeGUI(QMainWindow):
         conversation_layout.setContentsMargins(0, 0, 0, 0)
         self.conversation_log = QTextEdit()
         self.conversation_log.setReadOnly(True)
+        # Update Conversation Log placeholder
+        self.conversation_log.setPlaceholderText(
+            "Conversation History:\n\n"
+            "• Full dialogue between you and the AI will be recorded here\n"
+            "• User inputs are prefixed with 'User:'\n"
+            "• AI responses are prefixed with 'Assistant:'\n"
+            "• AI's thinking process is highlighted in a distinct color\n"
+            "• Helps track the evolution of your story development"
+        )
         self.conversation_log.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         conversation_layout.addWidget(self.conversation_log)
         tab_widget.addTab(conversation_tab, "Conversation Logs")
@@ -249,7 +266,16 @@ class NarrativeGUI(QMainWindow):
         # API Monitor display
         self.api_monitor = QTextEdit()
         self.api_monitor.setReadOnly(True)
-        self.api_monitor.setPlaceholderText("API calls will be displayed here...")
+        # Update API Monitor placeholder
+        self.api_monitor.setPlaceholderText(
+            "API Monitor Display:\n\n"
+            "• Shows all API interactions with the AI model\n"
+            "• Displays model name, timestamp, and token usage\n"
+            "• Helps track API costs and performance\n"
+            "• Records any API errors or warnings\n"
+            "• Use 'Clear Monitor' button to reset the display\n"
+            "• Useful for debugging and optimization"
+        )
         self.api_monitor.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         api_layout.addWidget(self.api_monitor)
         
@@ -563,7 +589,16 @@ class NarrativeGUI(QMainWindow):
             theme = 'dark' if self.is_dark_mode else 'light'
             format.setForeground(QColor(self.colors[theme]['fg']))
             cursor.setCharFormat(format)
-            cursor.insertText("Load your story file using File → Load Story... (Ctrl+O)")
+            cursor.insertText(
+                "Load your story file using File → Load Story... (Ctrl+O)\n\n"
+                "Story Development Display:\n\n"
+                "• Black text represents validated/saved story content\n"
+                "• Blue text shows current AI proposal or your edits\n"
+                "• Edit blue proposals in the 'Edit Blue' tab below\n"
+                "• Use 'Save Blue && Continue' to validate blue text\n"
+                "• Start writing your story by using the 'Edit Blue' tab\n"
+                "• Or let AI start by using 'Save Blue && Continue'"
+            )
             return
         
         # Insert validated canon in black
