@@ -878,28 +878,49 @@ class NarrativeGUI(QMainWindow):
         """Setup the input tabs area"""
         self.input_tabs = QTabWidget()
         
-        # Tab 1: Edit Blue Proposal (new)
+        # Tab 1: Edit Blue Proposal
         edit_tab = QWidget()
         edit_layout = QVBoxLayout(edit_tab)
         self.edit_input = QTextEdit()
-        self.edit_input.setPlaceholderText("Edit the current blue proposal here...")
+        self.edit_input.setPlaceholderText(
+            "Edit Blue Proposal:\n\n"
+            "• Type or paste text here to modify the blue proposal\n"
+            "• Changes appear instantly in the preview panel above\n"
+            "• Use this tab to start your story or edit AI suggestions\n"
+            "• Switch to 'Save Blue && Continue' when ready to proceed\n"
+            "• Your edits are preserved when switching between tabs"
+        )
         self.edit_input.textChanged.connect(self.update_blue_preview)
         edit_layout.addWidget(self.edit_input)
         self.input_tabs.addTab(edit_tab, "Edit Blue")
         
-        # Tab 2: Continue next section (existing)
+        # Tab 2: Continue next section
         continue_tab = QWidget()
         continue_layout = QVBoxLayout(continue_tab)
         self.continue_input = QTextEdit()
-        self.continue_input.setPlaceholderText("Input text to guide the AI in continuing the story...")
+        self.continue_input.setPlaceholderText(
+            "Save Blue && Continue:\n\n"
+            "• Current blue text will be saved as permanent black text\n"
+            "• Type guidance here for the AI to continue the story\n"
+            "• Leave empty to let AI continue based on context alone\n"
+            "• AI will generate a new blue proposal as continuation\n"
+            "• Use XML tags to structure your guidance (optional)"
+        )
         continue_layout.addWidget(self.continue_input)
         self.input_tabs.addTab(continue_tab, "Save Blue && Continue")
         
-        # Tab 3: Rewrite previous section (existing)
+        # Tab 3: Rewrite previous section
         rewrite_tab = QWidget()
         rewrite_layout = QVBoxLayout(rewrite_tab)
         self.rewrite_input = QTextEdit()
-        self.rewrite_input.setPlaceholderText("Input text to guide the AI in rewriting the blue proposal...")
+        self.rewrite_input.setPlaceholderText(
+            "Discard Blue && Rewrite:\n\n"
+            "• Current blue proposal will be discarded\n"
+            "• Type guidance here for the AI to generate new content\n"
+            "• AI will provide a completely new blue proposal\n"
+            "• Useful when the current proposal needs major changes\n"
+            "• Previous black (saved) text remains unchanged"
+        )
         rewrite_layout.addWidget(self.rewrite_input)
         self.input_tabs.addTab(rewrite_tab, "Discard Blue && Rewrite")
         
