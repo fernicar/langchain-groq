@@ -1128,6 +1128,47 @@ class NarrativeGUI(QMainWindow):
     save_as_action.triggered.connect(lambda: self.save_story(save_as=True))
     file_menu.addAction(save_as_action)
 
+    # Add separator
+    file_menu.addSeparator()
+
+    # Clear Story action
+    clear_action = QAction('Clear Story', self)
+    clear_action.setShortcut('Ctrl+N')
+    clear_action.triggered.connect(self.clear_story)
+    file_menu.addAction(clear_action)
+
+  def clear_story(self):
+    """Clear the story display and reset story-related states"""
+    if self.current_narrative or self.canon_validated:
+      reply = QMessageBox.question(
+        self,
+        'Clear Story',
+        'Are you sure you want to clear the current story? All unsaved content will be lost.',
+        QMessageBox.Yes | QMessageBox.No,
+        QMessageBox.No
+      )
+
+      if reply == QMessageBox.Yes:
+        # Clear story content
+        self.canon_validated = []
+        self.current_narrative = ""
+        self.current_file_path = None
+        
+        # Reinitialize LLM to reset conversation history
+        self.initialize_llm()
+        
+        # Update display
+        self.update_story_display()
+        
+        # Reset window title
+        self.setWindowTitle("Narrative Collaboration System")
+        
+        # Clear edit input
+        self.edit_input.clear()
+        
+        # Update status
+        self.thinking_display.append("Story cleared.")
+
   def load_story(self):
     """Handle story file loading"""
     file_path, _ = QFileDialog.getOpenFileName(
@@ -1173,13 +1214,8 @@ class NarrativeGUI(QMainWindow):
         # Store as validated canon
         self.canon_validated = meaningful_chunks
 
-        # Reset conversation memory
-        self.conversation.memory.clear()
-
-        # Simulate conversation history with last chunks
-        for chunk in meaningful_chunks[-5:]:
-          self.conversation.memory.chat_memory.add_user_message("Continue the story")
-          self.conversation.memory.chat_memory.add_ai_message(chunk)
+        # Reset conversation by reinitializing LLM
+        self.initialize_llm()
 
         # Update display
         self.update_story_display()
