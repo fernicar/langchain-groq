@@ -923,27 +923,47 @@ class NarrativeGUI(QMainWindow):
                 self.canon_validated = []
                 self.current_narrative = ""
                 
-                # Split content into chunks (by paragraphs)
-                chunks = [chunk.strip() for chunk in story_content.split('\n\n') if chunk.strip()]
+                # Split into meaningful chunks with minimum content
+                MIN_CHUNK_SIZE = 2000  # characters
+                raw_chunks = [chunk.strip() for chunk in story_content.split('\n\n') if chunk.strip()]
+                
+                meaningful_chunks = []
+                current_chunk = []
+                current_length = 0
+                
+                for chunk in raw_chunks:
+                    # Skip divider lines or very short content
+                    # if chunk.replace('-', '').strip() == '' or len(chunk) < 50:
+                    #     continue
+                    
+                    current_chunk.append(chunk)
+                    current_length += len(chunk)
+                    
+                    if current_length >= MIN_CHUNK_SIZE:
+                        meaningful_chunks.append('\n\n'.join(current_chunk))
+                        current_chunk = []
+                        current_length = 0
+                
+                # Add any remaining content as final chunk
+                if current_chunk:
+                    meaningful_chunks.append('\n\n'.join(current_chunk))
                 
                 # Store as validated canon
-                self.canon_validated = chunks
+                self.canon_validated = meaningful_chunks
                 
                 # Reset conversation memory
                 self.conversation.memory.clear()
                 
                 # Simulate conversation history with last chunks
-                for chunk in chunks[-5:]:
+                for chunk in meaningful_chunks[-5:]:
                     self.conversation.memory.chat_memory.add_user_message("Continue the story")
                     self.conversation.memory.chat_memory.add_ai_message(chunk)
                 
                 # Update display
                 self.update_story_display()
                 
-                # Update window title
+                # Update window title and status
                 self.setWindowTitle(f"Narrative Collaboration System - {os.path.basename(file_path)}")
-                
-                # Update status in thinking display
                 self.thinking_display.append(f"Loaded story from: {file_path}")
                 self.thinking_display.append("Previous content loaded as context for the AI.")
                 
