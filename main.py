@@ -137,7 +137,13 @@ class SystemPromptManager:
 class NarrativeGUI(QMainWindow):
   def __init__(self):
     super().__init__()
-
+    
+    # Add this line after super().__init__()
+    self.send_shortcut = QAction("Send", self)
+    self.send_shortcut.setShortcut("Ctrl+Return")  # Ctrl+Enter/Return
+    self.send_shortcut.triggered.connect(self.send_message)
+    self.addAction(self.send_shortcut)
+    
     # Add file path tracking
     self.current_file_path = None
 
@@ -685,9 +691,9 @@ class NarrativeGUI(QMainWindow):
         "• Black text represents validated/saved story content\n"
         "• Blue text shows current AI proposal or your edits\n"
         "• Edit blue proposals in the 'Edit Blue' tab below\n"
-        "• Use 'Save Blue && Continue' to validate blue text\n"
+        "• Use 'Save Blue & Continue' to validate blue text\n"
         "• Start writing your story by using the 'Edit Blue' tab\n"
-        "• Or let AI start by using 'Save Blue && Continue'"
+        "• Or let AI start by using 'Save Blue & Continue'"
       )
       return
 
@@ -1012,7 +1018,7 @@ class NarrativeGUI(QMainWindow):
       "• Type or paste text here to modify the blue proposal\n"
       "• Changes appear instantly in the preview panel above\n"
       "• Use this tab to start your story or edit AI suggestions\n"
-      "• Switch to 'Save Blue && Continue' when ready to proceed\n"
+      "• Switch to 'Save Blue & Continue' when ready to proceed\n"
       "• Your edits are preserved when switching between tabs"
     )
     # Set text color to match the preview blue color
@@ -1033,7 +1039,7 @@ class NarrativeGUI(QMainWindow):
     continue_layout = QVBoxLayout(continue_tab)
     self.continue_input = QTextEdit()
     self.continue_input.setPlaceholderText(
-      "Save Blue && Continue:\n\n"
+      "Save Blue & Continue:\n\n"
       "• Current blue text will be saved as permanent black text\n"
       "• Type guidance here for the AI to continue the story\n"
       "• Leave empty to let AI continue based on context alone\n"
@@ -1048,7 +1054,7 @@ class NarrativeGUI(QMainWindow):
     rewrite_layout = QVBoxLayout(rewrite_tab)
     self.rewrite_input = QTextEdit()
     self.rewrite_input.setPlaceholderText(
-      "Discard Blue && Rewrite:\n\n"
+      "Discard Blue & Rewrite:\n\n"
       "• Current blue proposal will be discarded\n"
       "• Type guidance here for the AI to generate new content\n"
       "• AI will provide a completely new blue proposal\n"
