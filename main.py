@@ -154,7 +154,7 @@ class NarrativeGUI(QMainWindow):
     # Initialize other attributes
     self.current_narrative = ""
     self.canon_validated = []
-    self.font_size = 12
+    self.font_size = 10
     self.is_dark_mode = True
     self.colors = {
       'dark': {
@@ -852,11 +852,12 @@ class NarrativeGUI(QMainWindow):
     format = self.conversation_log.currentCharFormat()
 
     # Log user input
-    format.setForeground(QColor(self.colors['dark' if self.is_dark_mode else 'light']['fg']))
+    format.setForeground(QColor(self.colors['dark' if self.is_dark_mode else 'light']['current']))
     cursor.insertText("User: ", format)
     cursor.insertText(f"{user_input}\n\n")
 
     # Log assistant response
+    format.setForeground(QColor(self.colors['dark' if self.is_dark_mode else 'light']['fg']))
     cursor.insertText("Assistant: ", format)
 
     # Split and format response based on XML think tags
@@ -947,10 +948,10 @@ class NarrativeGUI(QMainWindow):
     toolbar.addWidget(separator)
 
     # XML Tag wrapper
-    xml_label = QLabel("XML Tag:")
+    xml_label = QLabel("xml tag:")
     toolbar.addWidget(xml_label)
     self.xml_tag_input = QLineEdit()
-    self.xml_tag_input.setPlaceholderText("Enter tag name")
+    self.xml_tag_input.setPlaceholderText("custom tag")
     self.xml_tag_input.setMaximumWidth(100)
     toolbar.addWidget(self.xml_tag_input)
 
