@@ -1,3 +1,5 @@
+![preview](https://github.com/fernicar/langchain-groq/blob/main/images/preview.jpg)
+
 # Narrative Collaboration System
 
 A Qt-based desktop application for collaborative story writing with AI assistance using the Groq API and LangChain framework.
