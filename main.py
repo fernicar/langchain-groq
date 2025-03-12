@@ -830,23 +830,23 @@ class NarrativeGUI(QMainWindow):
         """Setup the input tabs area"""
         self.input_tabs = QTabWidget()
         
-        # Tab 1: Continue next section
+        # Tab 1: Continue next section (renamed)
         continue_tab = QWidget()
         continue_layout = QVBoxLayout(continue_tab)
         self.continue_input = QTextEdit()
-        self.continue_input.setPlaceholderText("Input text to continue with current narrative...")
+        self.continue_input.setPlaceholderText("Input text to guide the AI in continuing the story...")
         continue_layout.addWidget(self.continue_input)
-        self.input_tabs.addTab(continue_tab, "Continue Next Section")
+        self.input_tabs.addTab(continue_tab, "Save Blue && Continue")
         
-        # Tab 2: Rewrite previous section
+        # Tab 2: Rewrite previous section (renamed)
         rewrite_tab = QWidget()
         rewrite_layout = QVBoxLayout(rewrite_tab)
         self.rewrite_input = QTextEdit()
-        self.rewrite_input.setPlaceholderText("Input text to rewrite the previous section...")
+        self.rewrite_input.setPlaceholderText("Input text to guide the AI in rewriting the blue proposal...")
         rewrite_layout.addWidget(self.rewrite_input)
-        self.input_tabs.addTab(rewrite_tab, "Rewrite Previous Section")
+        self.input_tabs.addTab(rewrite_tab, "Discard Blue && Rewrite")
         
-        # Tab 3: Customize System Prompt
+        # Tab 3: Customize System Prompt (unchanged)
         system_tab = QWidget()
         system_layout = QVBoxLayout(system_tab)
         
