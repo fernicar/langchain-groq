@@ -179,7 +179,7 @@ class NarrativeGUI(QMainWindow):
 
     # Setup UI
     self.setWindowTitle("Narrative Collaboration System")
-    self.resize(1200, 800)
+    self.resize(1280, 720)
 
     # Create main layout
     main_layout = QVBoxLayout()
