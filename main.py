@@ -3,18 +3,16 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
  QHBoxLayout, QTextEdit, QLabel, QPushButton, QCheckBox, QFrame, QTabWidget,
  QSpinBox, QSplitter, QComboBox, QSizePolicy, QToolBar, QLineEdit, QFileDialog,
  QMessageBox, QDoubleSpinBox)
-from PySide6.QtCore import Qt, QSize
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont, QColor, QPalette, QAction
 from dotenv import load_dotenv
 import os
 from langchain_groq import ChatGroq
-from langchain.memory import ConversationBufferWindowMemory
 import re
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, HumanMessagePromptTemplate
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from langchain_core.messages import SystemMessage
 from langchain_core.callbacks import BaseCallbackHandler
-import argparse
-from typing import Optional, List
+from typing import List
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -22,7 +20,7 @@ import typing as t
 from groq import Groq
 from langchain_core.runnables import RunnableWithMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
-from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
+from langchain_core.messages import BaseMessage
 
 class APIMonitorCallback(BaseCallbackHandler):
   def __init__(self, api_monitor):
@@ -776,7 +774,6 @@ class NarrativeGUI(QMainWindow):
   def setup_toolbar(self):
     """Setup the application toolbar"""
     toolbar = QToolBar()
-    # self.addToolBar(toolbar)
 
     # Model selector
     model_label = QLabel("Model: ")
