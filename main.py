@@ -10,7 +10,7 @@ import os
 from langchain_groq import ChatGroq
 import re
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, HumanMessagePromptTemplate
-from langchain_core.messages import SystemMessage
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from langchain_core.callbacks import BaseCallbackHandler
 from typing import List
 import json
@@ -132,6 +132,24 @@ class SystemPromptManager:
       return True
     return False
 
+class WindowBufferHistory(BaseChatMessageHistory):
+  def __init__(self):
+    self._messages = [] # Use _messages as internal storage
+    self.max_tokens = 5 # Keep last 5 message pairs
+
+  def add_message(self, message):
+    self._messages.append(message)
+    # Keep only last 5 pairs of messages
+    if len(self._messages) > 10: # 5 pairs = 10 messages
+      self._messages = self._messages[-10:]
+
+  def clear(self):
+    self._messages = []
+
+  @property
+  def messages(self) -> List[BaseMessage]:
+    return self._messages
+
 class NarrativeGUI(QMainWindow):
   def __init__(self):
     super().__init__()
@@ -213,6 +231,9 @@ class NarrativeGUI(QMainWindow):
     # Setup toolbar and add it to the bottom
     toolbar = self.setup_toolbar()
     self.addToolBar(Qt.ToolBarArea.BottomToolBarArea, toolbar)
+
+    # Initialize primed history to none
+    self.primed_history = None
 
     # Now initialize LLM after toolbar is setup
     self.initialize_llm()
@@ -516,29 +537,16 @@ class NarrativeGUI(QMainWindow):
     # Create the runnable chain
     chain = prompt | llm
 
-    # Create message history store
-    class WindowBufferHistory(BaseChatMessageHistory):
-      def __init__(self):
-        self._messages = [] # Use _messages as internal storage
-        self.max_tokens = 5 # Keep last 5 message pairs
-
-      def add_message(self, message):
-        self._messages.append(message)
-        # Keep only last 5 pairs of messages
-        if len(self._messages) > 10: # 5 pairs = 10 messages
-          self._messages = self._messages[-10:]
-
-      def clear(self):
-        self._messages = []
-
-      @property
-      def messages(self) -> List[BaseMessage]:
-        return self._messages
-
     # Create the runnable with message history
+    if self.primed_history is not None:
+      history = self.primed_history
+      self.primed_history = None  # Consume the primed history
+    else:
+      history = WindowBufferHistory()
+
     self.conversation = RunnableWithMessageHistory(
       chain,
-      lambda session_id: WindowBufferHistory(),
+      lambda session_id: history,
       input_messages_key="input",
       history_messages_key="history"
     )
@@ -635,10 +643,10 @@ class NarrativeGUI(QMainWindow):
           {"input": user_input},
           config={"configurable": {"session_id": self.session_id}}
         )
-        
+
         # Extract the response content
         response_text = response.content if hasattr(response, 'content') else str(response)
-        
+
         # Update conversation log
         self.update_conversation_log(user_input, response_text)
 
@@ -1083,6 +1091,15 @@ class NarrativeGUI(QMainWindow):
 
         # Store as validated canon
         self.canon_validated = meaningful_chunks
+
+        # Simulate conversation history with last chunks
+        history = WindowBufferHistory()
+        for chunk in meaningful_chunks[-5:]:
+          history.add_message(HumanMessage(content="Continue the story"))
+          history.add_message(AIMessage(content=chunk))
+        
+        # Store the primed history for future use
+        self.primed_history = history
 
         # Reset conversation by reinitializing LLM
         self.initialize_llm()
