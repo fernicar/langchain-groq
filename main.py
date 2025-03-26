@@ -91,9 +91,9 @@ class APIMonitorCallback(BaseCallbackHandler):
     self.api_monitor.append(f"Token: {token}\n")
 
 class SystemPromptManager:
-  DEFAULT_PROMPT = """Eres un colaborador narrativo. Tu papel es ayudar a crear historias mientras muestras tu proceso de pensamiento.
-  Cuando pienses en la narrativa.
-  Mantén las respuestas enfocadas en el desarrollo de la narrativa."""
+  DEFAULT_PROMPT = """Eres un colaborador narrativo.
+  Tu papel es ayudar a crear historias.
+  Mantén las respuestas de narrativa solamente, sin explicaciones, listas para publicar."""
 
   def __init__(self, config_path: str = "system_prompts.json"):
     """Initialize the SystemPromptManager with a config file path"""
