@@ -3,6 +3,7 @@ venv/
 vs.code-workspace
 *.log
 activate.lnk
+activate.*.lnk
 vs.code-workspace
 system_prompts.json
 *.txt
