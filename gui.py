@@ -31,14 +31,18 @@ class GUI(QMainWindow):
         'fg': QColor('#ffffff'),
         'canon': QColor('#a9a9a9'),
         'current': QColor('#6495ed'),
-        'xml': QColor('#98fb98')
+        'xml': QColor('#98fb98'),
+        'tab_selected_bg': QColor('#e0e0e0'),
+        'tab_selected_fg': QColor('#2b2b2b')
       },
       'light': {
         'bg': QColor('#ffffff'),
         'fg': QColor('#000000'),
         'canon': QColor('#696969'),
         'current': QColor('#4169e1'),
-        'xml': QColor('#228b22')
+        'xml': QColor('#228b22'),
+        'tab_selected_bg': QColor('#444444'),
+        'tab_selected_fg': QColor('#ffffff')
       }
     }
 
@@ -340,8 +344,13 @@ class GUI(QMainWindow):
         margin-right: 2px;
       }}
       QTabBar::tab:selected {{
-        background-color: {self.colors[theme]['fg'].name()};
-        color: {self.colors[theme]['bg'].name()};
+        background-color: {self.colors[theme]['tab_selected_bg'].name()};
+        color: {self.colors[theme]['tab_selected_fg'].name()};
+        border-bottom: 2px solid {self.colors[theme]['tab_selected_fg'].name()};
+      }}
+      QTabBar::tab:hover {{
+        background-color: {self.colors[theme]['tab_selected_bg'].name()};
+        color: {self.colors[theme]['tab_selected_fg'].name()};
       }}
       QTitleBar {{
         background-color: {self.colors[theme]['bg'].name()};
