@@ -2,174 +2,150 @@
 
 # Narrative Collaboration System
 
-A Qt-based desktop application for collaborative story writing with AI assistance using the Groq API and LangChain framework.
+A desktop application designed for writers who want to maintain creative control while leveraging AI assistance in their writing process. Unlike traditional online chatbots, this system provides a structured, distraction-free environment specifically tailored for story development.
 
-## Core Workflow
+## Why This Project?
 
-The application manages story content in two states:
-- **Black Text**: Permanent, validated content that has been approved and saved
-- **Blue Text**: Current AI proposal or work in progress that hasn't been committed
+### Problems with Traditional AI Chat Interfaces
+- **Context Loss**: Chat interfaces often lose track of longer conversations, making it difficult to maintain story coherence
+- **Content Management**: No clear distinction between work-in-progress and finalized content, leading to confusion
+- **Limited Creative Control**: Writers often find themselves following the AI's lead rather than directing the story
+- **Workflow Disruption**: Constant copying and pasting between chat and writing tools breaks creative flow
+- **Content Overload**: Easy to accumulate massive amounts of AI-generated text without proper review structure
+- **Local Management**: Lack of proper tools for organizing and managing story content offline
+- **Review Process**: No structured way to review, edit, and approve AI suggestions, leading to content backlogs
 
-### Main Interaction Modes
+### User-Friendly Solution
+This application provides:
+- A dedicated writing environment with clear visual feedback
+- Local file management for your stories
+- Structured workflow for story development
+- Full control over AI involvement
+- Clear separation between drafts (blue) and approved content (black/white)
+- Dark and light themes for comfortable reading
 
-1. **Edit Blue**
-   - Direct editing interface for modifying the current blue proposal
-   - Make precise adjustments to AI-generated text
-   - Fix specific words or phrases before committing
-   - Changes reflect instantly in the preview panel
+## Key Features
 
-2. **Save Blue & Continue**
-   - Two actions in one:
-     1. Converts current blue proposal to permanent black text
-     2. Generates new blue proposal based on your guidance
-   - Can provide specific instructions for the next section
-   - Leave guidance empty to let AI continue based on context
-   - Supports XML tags for structured instructions
+### Unique Workflow
+- **Two-State Content Management**
+  - Black/White Text: Your approved, permanent content
+  - Blue Text: AI proposals or work in progress
+  - Clear visual distinction between draft and final content
+  - No copying and pasting between tools
+  - Efficient interaction model with minimal clicks
+  - Keyboard shortcuts for rapid workflow
+  - XML tag support for structured instructions
 
-3. **Discard Blue & Rewrite**
-   - Completely removes current blue proposal from history
-   - Generates new alternative content based on your instructions
-   - Previous black (committed) text remains unchanged
-   - Useful when the current proposal needs complete replacement
-   - As if the discarded proposal never existed
+### Three Interaction Modes
+1. **Edit Blue** Enforces story coherence manually 
+   - Direct editing of AI proposals
+   - Immediate visual feedback
+   - Full creative control
+   - Persistent edits across tab switches
 
-### Story Development Process
+2. **Save Blue & Continue** When story coherence is maintained
+   - Save current blue text as permanent content
+   - Provide optional guidance for next section
+   - Let AI continue based on context alone
+   - Automatic conversation history management
 
-1. **Starting Point**
-   - Begin with either your own text or let AI generate initial content
-   - All new content appears in blue for review
+3. **Discard Blue & Rewrite** Useful for major revisions
+   - Automatic discard of blue text
+   - Reroll without discarded blue text influence
+   - Request alternative proposals
+   - Provide specific rewriting instructions
 
-2. **Review and Iteration**
-   - Review blue proposals
-   - Choose one of three actions:
-     - Edit: Fine-tune the current blue text
-     - Save & Continue: Commit and progress
-     - Discard & Rewrite: Start fresh with new instructions
+### Advanced Context Management
+- Maintains story coherence across sessions
+- Automatic content chunking for long stories
+- Rolling context window of recent content
+- Seamless continuation of previous work
 
-3. **Content Management**
-   - Committed (black) text is saved to file
-   - Blue proposals can be edited until committed
-   - Clear separation between approved and proposed content
+## Getting Started
 
-### Story Management
-- File operations (Open, Save, Save As)
-- Automatic story chunking for context management
-- Unsaved changes protection
-- Story preview with color-coded sections:
-  - Black: Committed/saved content
-  - Blue: Current proposal/work in progress
+### System Requirements
+- Operating System: Windows/Mac/Linux
+- Python 3.x
+- 4GB RAM minimum
+- Internet connection (for AI interactions only)
 
-### Technical Features
-- LangChain integration with Groq API
-- Multiple AI model support:
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/narrative-collaboration-system.git
+```
+
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+3. Set up your API key:
+   - Create a `.env` file in the project root
+   - Add your Groq API key:
+   ```
+   GROQ_API_KEY=your_api_key_here
+   ```
+
+### Quick Start
+1. Launch the application:
+```bash
+python main.py
+```
+
+2. Choose your preferred AI model from the dropdown
+3. Start writing or load an existing story (Ctrl+O)
+4. Use the three tabs below to interact with your content
+
+## Usage Tips
+
+### Best Practices
+- Save regularly (Ctrl+S)
+- Use XML tags for structured instructions
+- Keep context window in mind (5 interactions)
+- Review AI proposals before committing
+
+### Keyboard Shortcuts
+- Ctrl+O: Load Story
+- Ctrl+S: Save Story
+- Ctrl+Shift+S: Save Story As
+
+## Limitations
+- Maximum context window of 5 interactions
+- English-only interface
+- Requires Groq API access
+- No cloud synchronization (local files only)
+- Single story session at a time
+
+## Technical Details
+
+### AI Configuration
+- Adjustable temperature for creativity control
+- Configurable maximum tokens
+- Multiple model support:
   - qwen-qwq-32b
   - deepseek-r1-distill-qwen-32b
   - deepseek-r1-distill-llama-70b
   - mixtral-8x7b-32768
   - llama-3.3-70b-versatile
-- Conversation buffer window memory (last 5 interactions)
+
+### File Management
+- UTF-8 text encoding
+- Plain text (.txt) file format
+- Automatic story chunking
+- Local file storage
+
+### Customization
+- System prompts via `system_prompts.json`
+- Editable system prompt, Default Spanish to test.
+- Configurable conversation memory
 - XML tag support for structured input
-- JSON-based system prompt configuration
-- UTF-8 text encoding support
-- Spanish language interface and AI responses
 
-## Advanced Workflow
+## License
+MIT License
 
-### Story Continuation
-The application implements a sophisticated context management system:
-
-1. **Loading Existing Stories**
-   - Load your existing story file (Ctrl+O)
-   - The system automatically processes the text into meaningful chunks
-   - The last 5 chunks are used to simulate a conversation history with the AI
-   - This simulated history provides context as if the story had been written in one session
-
-2. **Context Management**
-   - The application maintains a rolling window of the last 5 interactions
-   - When loading a story, the system creates artificial conversation turns:
-     - Each chunk is treated as if it was a "Continue the story" request
-     - The AI's responses are simulated using the actual story content
-   - This creates seamless continuation capability for:
-     - Stories written in previous sessions
-     - Stories written outside the application
-     - Collaborative works between multiple sessions
-
-3. **Session Workflow**
-   - Start by loading your story file
-   - The system automatically reconstructs the conversation context
-   - Continue writing as if you never left the session
-   - All features (Edit Blue, Save & Continue, Rewrite) work seamlessly
-   - The AI maintains narrative consistency with previous content
-
-### Basic Workflow
-For new stories:
-   - Start with a blank slate
-   - Use Edit Blue tab to write initial content
-   - Or let AI generate the starting point
-   - Progress using Save Blue & Continue
-   - Use Discard Blue & Rewrite for revisions
-   - Save regularly (Ctrl+S)
-
-## Requirements
-
-- Python 3.x
-- PySide6 (Qt for Python)
-- LangChain and LangChain Groq
-- Groq API access
-- python-dotenv
-- Additional dependencies:
-  - typing
-  - json
-  - datetime
-  - pathlib
-  - re
-  - argparse
-
-## Installation
-
-1. Clone the repository
-2. Install dependencies:
-```bash
-pip install PySide6 langchain langchain-groq python-dotenv
-```
-3. Create a `.env` file with your Groq API key:
-```
-GROQ_API_KEY=your_api_key_here
-```
-
-## Usage
-
-1. Run the application:
-```bash
-python main.py
-```
-
-2. Basic workflow:
-   - Start a new story or load existing one (Ctrl+O)
-   - Use the Edit Blue tab to write or modify content
-   - Use Save Blue & Continue to progress the story
-   - Use Discard Blue & Rewrite for major revisions
-   - Save your work regularly (Ctrl+S)
-   - Select your preferred AI model from the dropdown menu
-
-## Keyboard Shortcuts
-- Ctrl+O: Load Story
-- Ctrl+S: Save Story
-- Ctrl+Shift+S: Save Story As
-
-## File Format
-- Saves stories as plain text (.txt) files
-- Uses UTF-8 encoding
-- Automatically chunks content for optimal AI context
-
-## Configuration
-- System prompts are stored in `system_prompts.json`
-- Default system prompt in Spanish
-- Supports custom prompt creation and management
-- Configurable conversation memory window (default: 5 messages)
-
-## Notes
-- Unsaved blue proposals will trigger a save prompt when closing
-- The application maintains conversation context for consistent story flow
-- Large stories are automatically chunked for better AI context management
-- Interface and AI responses are in Spanish by default
+## Acknowledgments
+- Built with LangChain and Groq API
+- UI powered by Qt/PySide6
+- Special thanks to our contributors
