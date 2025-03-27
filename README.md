@@ -73,7 +73,7 @@ This application provides:
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/narrative-collaboration-system.git
+git clone https://github.com/fernicar/langchain-groq
 ```
 
 2. Install dependencies:
