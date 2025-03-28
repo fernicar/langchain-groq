@@ -288,6 +288,9 @@ class Narrative(GUI): # Inherit from GUI
     """Initialize the language model and conversation chain"""
     load_dotenv()
 
+    # Get the current system prompt from manager before initializing
+    self.system_prompt = self.prompt_manager.get_active_prompt()  # Add this line
+
     # Get the currently selected model from the combo box
     selected_model = self.model_selector.currentText()
 
@@ -503,6 +506,8 @@ class Narrative(GUI): # Inherit from GUI
       if new_system_prompt:
         self.system_prompt = new_system_prompt
         self.save_system_prompt()
+        # Add this line to ensure prompt is refreshed from manager
+        self.system_prompt = self.prompt_manager.get_active_prompt()
         self.initialize_llm()
         print("System prompt updated and saved.")
       return
@@ -665,6 +670,7 @@ class Narrative(GUI): # Inherit from GUI
         self.canon_validated = []
 
     # Initialize new conversation
+    self.system_prompt = self.prompt_manager.get_active_prompt()  # Add this line
     self.initialize_llm()
 
     if textfile_content:
