@@ -25,66 +25,53 @@ class APIMonitorCallback(BaseCallbackHandler):
     self.api_monitor = api_monitor
 
   def _serialize_for_json(self, obj):
-    """Helper method to serialize objects that aren't JSON serializable by default"""
+    if hasattr(obj, 'model_dump'):
+      return obj.model_dump()
     if hasattr(obj, '__dict__'):
-        return obj.__dict__
-    if hasattr(obj, 'hex'):  # For UUID objects
-        return str(obj)
+      return obj.__dict__
+    if hasattr(obj, 'hex'):
+      return str(obj)
     return str(obj)
 
   def on_llm_start(self, serialized, prompts, **kwargs):
     try:
-        self.api_monitor.append("RAW API REQUEST:")
-        serialized_json = json.dumps(serialized, indent=2, ensure_ascii=False, default=self._serialize_for_json)
-        prompts_json = json.dumps(prompts, indent=2, ensure_ascii=False, default=self._serialize_for_json)
-        kwargs_json = json.dumps(kwargs, indent=2, ensure_ascii=False, default=self._serialize_for_json)
-        
-        self.api_monitor.append(f"serialized:\n{serialized_json}\n")
-        self.api_monitor.append(f"prompts:\n{prompts_json}\n")
-        self.api_monitor.append(f"kwargs:\n{kwargs_json}\n")
-        self.api_monitor.append("-" * 50 + "\n")
+      self.api_monitor.append("RAW GROQ API REQUEST:")
+      # Use ensure_ascii=False to show actual characters instead of escape sequences
+      self.api_monitor.append(f"Raw message_dicts:\n{json.dumps(prompts, indent=2, ensure_ascii=False)}\n")
+      self.api_monitor.append(f"Raw params:\n{json.dumps(serialized, indent=2, ensure_ascii=False)}\n")
+      self.api_monitor.append("-" * 50 + "\n")
     except Exception as e:
-        self.api_monitor.append(f"Error serializing request: {str(e)}\n")
-        self.api_monitor.append(f"Raw serialized: {str(serialized)}\n")
-        self.api_monitor.append(f"Raw prompts: {str(prompts)}\n")
-        self.api_monitor.append(f"Raw kwargs: {str(kwargs)}\n")
-        self.api_monitor.append("-" * 50 + "\n")
+      self.api_monitor.append(f"Error logging request: {str(e)}\n")
 
   def on_llm_end(self, response, **kwargs):
     try:
-        self.api_monitor.append("RAW API RESPONSE:")
-        response_dict = response.model_dump() if hasattr(response, 'model_dump') else str(response)
-        response_json = json.dumps(response_dict, indent=2, ensure_ascii=False, default=self._serialize_for_json)
-        kwargs_json = json.dumps(kwargs, indent=2, ensure_ascii=False, default=self._serialize_for_json)
-        
-        self.api_monitor.append(f"response:\n{response_json}\n")
-        self.api_monitor.append(f"kwargs:\n{kwargs_json}\n")
-        self.api_monitor.append("-" * 50 + "\n")
+      self.api_monitor.append("RAW GROQ API RESPONSE:")
+      response_dict = response.model_dump() if hasattr(response, 'model_dump') else str(response)
+      # Use ensure_ascii=False here too
+      self.api_monitor.append(f"{json.dumps(response_dict, indent=2, ensure_ascii=False)}\n")
+      self.api_monitor.append("-" * 50 + "\n")
     except Exception as e:
-        self.api_monitor.append(f"Error serializing response: {str(e)}\n")
-        self.api_monitor.append(f"Raw response: {str(response)}\n")
-        self.api_monitor.append(f"Raw kwargs: {str(kwargs)}\n")
-        self.api_monitor.append("-" * 50 + "\n")
+      self.api_monitor.append(f"Error logging response: {str(e)}\n")
 
   def on_llm_error(self, error, **kwargs):
     try:
-        self.api_monitor.append("RAW API ERROR:")
-        error_dict = {
-            "error_type": error.__class__.__name__,
-            "error_message": str(error)
-        }
-        error_json = json.dumps(error_dict, indent=2, ensure_ascii=False, default=self._serialize_for_json)
-        kwargs_json = json.dumps(kwargs, indent=2, ensure_ascii=False, default=self._serialize_for_json)
-        
-        self.api_monitor.append(f"error:\n{error_json}\n")
-        self.api_monitor.append(f"kwargs:\n{kwargs_json}\n")
-        print(f"Error occurred:\n{error_json}")
-        self.api_monitor.append("-" * 50 + "\n")
+      self.api_monitor.append("RAW API ERROR:")
+      error_dict = {
+        "error_type": error.__class__.__name__,
+        "error_message": str(error)
+      }
+      error_json = json.dumps(error_dict, indent=2, ensure_ascii=False, default=self._serialize_for_json)
+      kwargs_json = json.dumps(kwargs, indent=2, ensure_ascii=False, default=self._serialize_for_json)
+      
+      self.api_monitor.append(f"error:\n{error_json}\n")
+      self.api_monitor.append(f"kwargs:\n{kwargs_json}\n")
+      print(f"Error occurred:\n{error_json}")
+      self.api_monitor.append("-" * 50 + "\n")
     except Exception as e:
-        self.api_monitor.append(f"Error serializing error: {str(e)}\n")
-        self.api_monitor.append(f"Raw error: {str(error)}\n")
-        self.api_monitor.append(f"Raw kwargs: {str(kwargs)}\n")
-        self.api_monitor.append("-" * 50 + "\n")
+      self.api_monitor.append(f"Error serializing error: {str(e)}\n")
+      self.api_monitor.append(f"Raw error: {str(error)}\n")
+      self.api_monitor.append(f"Raw kwargs: {str(kwargs)}\n")
+      self.api_monitor.append("-" * 50 + "\n")
 
   def on_llm_new_token(self, token: str, **kwargs):
     """Called when streaming is enabled and a new token is received"""
