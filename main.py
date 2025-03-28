@@ -191,6 +191,7 @@ class WindowBufferHistory(BaseChatMessageHistory):
 
   @property
   def messages(self) -> List[BaseMessage]:
+    # import pdb; pdb.set_trace()  # Add breakpoint here
     return self._messages
 
   # Add new method to replace all messages
@@ -398,7 +399,8 @@ class Narrative(GUI): # Inherit from GUI
       cleaned_content = re.sub(r'\n*<think>.*?</think>\n*', '', content, flags=re.DOTALL).strip()
       
       # Get user input from continue tab, fallback to emoji if empty
-      user_input = self.continue_input.toPlainText().strip()
+      user_input = self.current_user_input
+      self.current_user_input = self.continue_input.toPlainText().strip()
       if not user_input:
         user_input = "✒️✍️📜"
       
@@ -417,18 +419,20 @@ class Narrative(GUI): # Inherit from GUI
       # Clear current narrative using central method
       self.update_blue_text("")
       # Clear continue input
-      self.continue_input.clear()
+      # self.continue_input.clear()
       # Update displays
-      self.update_story_display()
-      self.edit_input.clear()
+      # self.update_story_display()
+      # self.edit_input.clear()
+      # self.current_narrative = ""
 
   def discard_last_conversation_pair(self):
     """Remove the last user input and AI response pair from history"""
     config = {"configurable": {"session_id": self.session_id}}
     history = self.conversation._merge_configs(config)["configurable"]["message_history"]
+    last_user_input = self.current_user_input
     if len(history.messages) >= 2:
       # Store the last user input before removing
-      last_user_input = history.messages[-2].content
+      self.current_user_input = history.messages[-2].content
       
       # Don't copy the default emoji input to the fields
       if last_user_input != "✒️✍️📜":
@@ -492,24 +496,23 @@ class Narrative(GUI): # Inherit from GUI
     try:
       # Get input based on current tab
       if current_tab == 0: # Edit Blue tab
-        user_input = self.edit_input.toPlainText().strip()
+        user_input = self.continue_input.toPlainText().strip()
       elif current_tab == 1: # Continue next section
         user_input = self.continue_input.toPlainText().strip()
-        if self.current_narrative:
-          self.canon_validated.append(self.current_narrative)
+        self.commit_blue_text()
       elif current_tab == 2: # Rewrite previous section
         user_input = self.rewrite_input.toPlainText().strip()
 
-      if user_input:
-        # Wrap input with XML tags if specified
-        xml_tag = self.xml_tag_input.text().strip()
-        if xml_tag:
-          user_input = self.wrap_text_with_xml(user_input, xml_tag)
+      # Wrap input with XML tags if specified
+      xml_tag = self.xml_tag_input.text().strip()
+      if user_input or xml_tag:
+        user_input = self.wrap_text_with_xml(user_input, xml_tag)
+        self.current_user_input = user_input # track last user input
 
         # Get history before the new response
         config = {"configurable": {"session_id": self.session_id}}
         history = self.conversation._merge_configs(config)["configurable"]["message_history"]
-        
+
         # Invoke the chain with message history
         response = self.conversation.invoke(
           {"input": user_input},
@@ -526,7 +529,7 @@ class Narrative(GUI): # Inherit from GUI
         narrative_parts = [part.strip()
           for part in re.split(r'\n*<think>.*?</think>\n*', response_text, flags=re.DOTALL)
           if part.strip()]
-        self.current_narrative = ' '.join(narrative_parts)
+        self.update_blue_text(' '.join(narrative_parts))
 
         # Remove the automatically added response with think tags
         if len(history.messages) >= 2:
@@ -534,12 +537,12 @@ class Narrative(GUI): # Inherit from GUI
           history.messages = new_messages
 
         # Add clean narrative to history
-        history.add_message(HumanMessage(content=user_input))
-        history.add_message(AIMessage(content=self.current_narrative))
+        # history.add_message(HumanMessage(content=user_input))
+        # history.add_message(AIMessage(content=self.current_narrative))
 
         # Update story display
-        self.update_story_display()
-        self.edit_input.setPlainText(self.current_narrative)
+        # self.update_story_display()
+        # self.edit_input.setPlainText(self.current_narrative)
 
         # Extract thinking content
         think_blocks = re.findall(r'<think>\n*(.*?)\n*</think>', response_text, flags=re.DOTALL)
@@ -547,9 +550,7 @@ class Narrative(GUI): # Inherit from GUI
         self.thinking_display.setText(thinking_content)
 
         # Clear input of current tab
-        if current_tab == 0:
-          self.edit_input.clear()
-        elif current_tab == 1:
+        if current_tab == 1:
           self.continue_input.clear()
         elif current_tab == 2:
           self.rewrite_input.clear()
@@ -658,7 +659,7 @@ class Narrative(GUI): # Inherit from GUI
         for chunk in chunks_for_history:
             self.simulate_conversation_turn(chunk)
     else:
-        self.current_narrative = ""
+        self.update_blue_text("") # Use central method instead of direct assignment
 
     # Update displays
     self.update_story_display()

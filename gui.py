@@ -21,6 +21,7 @@ class GUI(QMainWindow):
     self.current_file_path = None
 
     # Initialize other attributes
+    self.current_user_input = ""
     self.current_narrative = ""
     self.canon_validated = []
     self.font_size = 10
