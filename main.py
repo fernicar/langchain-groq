@@ -1,7 +1,7 @@
 # --- START OF FILE main.py ---
 import sys
 import os
-from dotenv import load_dotenv
+from dotenv import load_dotenv, set_key
 from langchain_groq import ChatGroq
 import re
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, HumanMessagePromptTemplate
@@ -17,7 +17,7 @@ from langchain_core.runnables import RunnableWithMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.messages import BaseMessage
 
-from gui import GUI # Import the GUI class
+from gui import GUI, APIKeyDialog # Import the GUI class
 
 class APIMonitorCallback(BaseCallbackHandler):
   def __init__(self, api_monitor):
@@ -215,7 +215,11 @@ class WindowBufferHistory(BaseChatMessageHistory):
 class Narrative(GUI): # Inherit from GUI
   def __init__(self):
     super().__init__()
-
+    
+    # Check for API key before initializing
+    if not self.ensure_api_key():
+      sys.exit(1)
+      
     # Initialize system prompt from prompt manager
     self.prompt_manager = SystemPromptManager()
     self.system_prompt = self.prompt_manager.get_active_prompt()
@@ -225,6 +229,29 @@ class Narrative(GUI): # Inherit from GUI
 
     # Now initialize LLM after toolbar is setup
     self.initialize_llm()
+
+  def ensure_api_key(self):
+    """Ensure GROQ_API_KEY is available, prompt user if not"""
+    # Try to load from .env first
+    env_path = Path('.env')
+    load_dotenv(env_path)
+    
+    api_key = os.getenv('GROQ_API_KEY')
+    if api_key:  # Accept any non-empty key from .env
+        return True
+        
+    # If no key found, show dialog
+    dialog = APIKeyDialog(self)
+    if dialog.exec():
+        api_key = dialog.get_api_key()
+        if api_key:
+            # Save to .env file
+            env_path.touch(exist_ok=True)
+            set_key(env_path, 'GROQ_API_KEY', api_key)
+            os.environ['GROQ_API_KEY'] = api_key
+            return True
+        
+    return False
 
   def populate_models_and_prompts(self):
     """Populate model selector and prompt selector with data"""

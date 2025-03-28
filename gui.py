@@ -3,9 +3,109 @@ import sys
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
  QHBoxLayout, QTextEdit, QLabel, QPushButton, QCheckBox, QFrame, QTabWidget,
  QSpinBox, QSplitter, QComboBox, QSizePolicy, QToolBar, QLineEdit, QFileDialog,
- QMessageBox, QDoubleSpinBox)
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont, QColor, QPalette, QAction
+ QMessageBox, QDoubleSpinBox, QDialog, QVBoxLayout, QLabel, QLineEdit, 
+ QPushButton, QTextBrowser)
+from PySide6.QtCore import Qt, QUrl
+from PySide6.QtGui import QFont, QColor, QPalette, QAction, QDesktopServices
+
+class APIKeyDialog(QDialog):
+    EXPECTED_KEY_LENGTH = 56  # Class variable for expected key length
+    EXPECTED_KEY_PREFIX = 'gsk_'  # Class variable for expected key prefix
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Groq API Key Setup")
+        self.setMinimumWidth(500)
+        self.setMinimumHeight(400)
+        
+        layout = QVBoxLayout(self)
+        
+        # Info text with HTML formatting
+        info = QTextBrowser()
+        info.setOpenExternalLinks(True)
+        info.setHtml("""
+            <style>
+            a {
+                color: #66B2FF;
+                text-decoration: underline;
+            }
+            a:hover {
+                color: #99CCFF;
+            }
+            </style>
+            <h3>Welcome to the Narrative Collaboration System!</h3>
+            <p>To get started, you'll need a free Groq API key. This is a great opportunity 
+            to practice API key management!</p>
+            
+            <p><b>To get your free API key:</b></p>
+            <ol>
+                <li>Visit <a href='https://console.groq.com/keys'>console.groq.com/keys</a></li>
+                <li>Sign up or log in (it's free)</li>
+                <li>Click "Create API Key" to get a free key</li>
+            </ol>
+            
+            <p><b>Best Practices (for learning):</b></p>
+            <ul>
+                <li>API keys should be kept private (even free ones - good practice!)</li>
+                <li>Store them in environment variables or .env files</li>
+                <li>Never commit API keys to version control</li>
+            </ul>
+            
+            <p>Your key will be saved in a .env file in your project directory.</p>
+        """)
+        layout.addWidget(info)
+        
+        # API Key input
+        key_layout = QVBoxLayout()
+        key_label = QLabel("Enter your Groq API Key:")
+        self.key_input = QLineEdit()
+        self.key_input.setPlaceholderText("gsk_...")
+        key_layout.addWidget(key_label)
+        key_layout.addWidget(self.key_input)
+        layout.addLayout(key_layout)
+        
+        # Buttons
+        button_layout = QHBoxLayout()
+        self.save_button = QPushButton("Save Key")
+        self.save_button.clicked.connect(self.accept)
+        self.cancel_button = QPushButton("Cancel")
+        self.cancel_button.clicked.connect(self.reject)
+        button_layout.addWidget(self.save_button)
+        button_layout.addWidget(self.cancel_button)
+        layout.addLayout(button_layout)
+        
+        # Set focus to key input
+        self.key_input.setFocus()
+    
+    def get_api_key(self):
+        return self.key_input.text().strip()
+
+    def accept(self):
+        key = self.get_api_key()
+        if not key:
+            QMessageBox.warning(
+                self,
+                "Missing API Key",
+                "Please enter an API key."
+            )
+            return
+            
+        # Warning if key doesn't match expected format
+        if not (key.startswith(self.EXPECTED_KEY_PREFIX) and len(key) == self.EXPECTED_KEY_LENGTH):
+            reply = QMessageBox.warning(
+                self,
+                "Unexpected API Key Format",
+                f"The API key doesn't match the expected format\nIt should start with '{self.EXPECTED_KEY_PREFIX}' "
+                f"and be {self.EXPECTED_KEY_LENGTH} characters long.\nCurrent length: {len(key)}.\n\n"
+                "Do you want to continue anyway?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No
+            )
+            
+            if reply == QMessageBox.No:
+                return
+                
+        super().accept()
 
 class GUI(QMainWindow):
   def __init__(self):
