@@ -9,103 +9,103 @@ from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QFont, QColor, QPalette, QAction, QDesktopServices
 
 class APIKeyDialog(QDialog):
-    EXPECTED_KEY_LENGTH = 56  # Class variable for expected key length
-    EXPECTED_KEY_PREFIX = 'gsk_'  # Class variable for expected key prefix
-    
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Groq API Key Setup")
-        self.setMinimumWidth(500)
-        self.setMinimumHeight(400)
-        
-        layout = QVBoxLayout(self)
-        
-        # Info text with HTML formatting
-        info = QTextBrowser()
-        info.setOpenExternalLinks(True)
-        info.setHtml("""
-            <style>
-            a {
-                color: #66B2FF;
-                text-decoration: underline;
-            }
-            a:hover {
-                color: #99CCFF;
-            }
-            </style>
-            <h3>Welcome to the Narrative Collaboration System!</h3>
-            <p>To get started, you'll need a free Groq API key. This is a great opportunity 
-            to practice API key management!</p>
-            
-            <p><b>To get your free API key:</b></p>
-            <ol>
-                <li>Visit <a href='https://console.groq.com/keys'>console.groq.com/keys</a></li>
-                <li>Sign up or log in (it's free)</li>
-                <li>Click "Create API Key" to get a free key</li>
-            </ol>
-            
-            <p><b>Best Practices (for learning):</b></p>
-            <ul>
-                <li>API keys should be kept private (even free ones - good practice!)</li>
-                <li>Store them in environment variables or .env files</li>
-                <li>Never commit API keys to version control</li>
-            </ul>
-            
-            <p>Your key will be saved in a .env file in your project directory.</p>
-        """)
-        layout.addWidget(info)
-        
-        # API Key input
-        key_layout = QVBoxLayout()
-        key_label = QLabel("Enter your Groq API Key:")
-        self.key_input = QLineEdit()
-        self.key_input.setPlaceholderText("gsk_...")
-        key_layout.addWidget(key_label)
-        key_layout.addWidget(self.key_input)
-        layout.addLayout(key_layout)
-        
-        # Buttons
-        button_layout = QHBoxLayout()
-        self.save_button = QPushButton("Save Key")
-        self.save_button.clicked.connect(self.accept)
-        self.cancel_button = QPushButton("Cancel")
-        self.cancel_button.clicked.connect(self.reject)
-        button_layout.addWidget(self.save_button)
-        button_layout.addWidget(self.cancel_button)
-        layout.addLayout(button_layout)
-        
-        # Set focus to key input
-        self.key_input.setFocus()
-    
-    def get_api_key(self):
-        return self.key_input.text().strip()
+  EXPECTED_KEY_LENGTH = 56  # Class variable for expected key length
+  EXPECTED_KEY_PREFIX = 'gsk_'  # Class variable for expected key prefix
+  
+  def __init__(self, parent=None):
+    super().__init__(parent)
+    self.setWindowTitle("Groq API Key Setup")
+    self.setMinimumWidth(500)
+    self.setMinimumHeight(400)
 
-    def accept(self):
-        key = self.get_api_key()
-        if not key:
-            QMessageBox.warning(
-                self,
-                "Missing API Key",
-                "Please enter an API key."
-            )
-            return
-            
-        # Warning if key doesn't match expected format
-        if not (key.startswith(self.EXPECTED_KEY_PREFIX) and len(key) == self.EXPECTED_KEY_LENGTH):
-            reply = QMessageBox.warning(
-                self,
-                "Unexpected API Key Format",
-                f"The API key doesn't match the expected format\nIt should start with '{self.EXPECTED_KEY_PREFIX}' "
-                f"and be {self.EXPECTED_KEY_LENGTH} characters long.\nCurrent length: {len(key)}.\n\n"
-                "Do you want to continue anyway?",
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No
-            )
-            
-            if reply == QMessageBox.No:
-                return
-                
-        super().accept()
+    layout = QVBoxLayout(self)
+
+    # Info text with HTML formatting
+    info = QTextBrowser()
+    info.setOpenExternalLinks(True)
+    info.setHtml("""
+<style>
+a {
+  color: #66B2FF;
+  text-decoration: underline;
+}
+a:hover {
+  color: #99CCFF;
+}
+</style>
+<h3>Welcome to the Narrative Collaboration System!</h3>
+<p>To get started, you'll need a free Groq API key. This is a great opportunity 
+to practice API key management!</p>
+
+<p><b>To get your free API key:</b></p>
+<ol>
+  <li>Visit <a href='https://console.groq.com/keys'>console.groq.com/keys</a></li>
+  <li>Sign up or log in (it's free)</li>
+  <li>Click "Create API Key" to get a free key</li>
+</ol>
+
+<p><b>Best Practices (for learning):</b></p>
+<ul>
+  <li>API keys should be kept private (even free ones - good practice!)</li>
+  <li>Store them in environment variables or .env files</li>
+  <li>Never commit API keys to version control</li>
+</ul>
+
+<p>Your key will be saved in a .env file in your project directory.</p>
+    """)
+    layout.addWidget(info)
+
+    # API Key input
+    key_layout = QVBoxLayout()
+    key_label = QLabel("Enter your Groq API Key:")
+    self.key_input = QLineEdit()
+    self.key_input.setPlaceholderText("gsk_...")
+    key_layout.addWidget(key_label)
+    key_layout.addWidget(self.key_input)
+    layout.addLayout(key_layout)
+
+    # Buttons
+    button_layout = QHBoxLayout()
+    self.save_button = QPushButton("Save Key")
+    self.save_button.clicked.connect(self.accept)
+    self.cancel_button = QPushButton("Cancel")
+    self.cancel_button.clicked.connect(self.reject)
+    button_layout.addWidget(self.save_button)
+    button_layout.addWidget(self.cancel_button)
+    layout.addLayout(button_layout)
+
+    # Set focus to key input
+    self.key_input.setFocus()
+
+  def get_api_key(self):
+    return self.key_input.text().strip()
+
+  def accept(self):
+    key = self.get_api_key()
+    if not key:
+      QMessageBox.warning(
+        self,
+        "Missing API Key",
+        "Please enter an API key."
+      )
+      return
+
+    # Warning if key doesn't match expected format
+    if not (key.startswith(self.EXPECTED_KEY_PREFIX) and len(key) == self.EXPECTED_KEY_LENGTH):
+      reply = QMessageBox.warning(
+        self,
+        "Unexpected API Key Format",
+        f"The API key doesn't match the expected format\nIt should start with '{self.EXPECTED_KEY_PREFIX}' "
+        f"and be {self.EXPECTED_KEY_LENGTH} characters long.\nCurrent length: {len(key)}.\n\n"
+        "Do you want to continue anyway?",
+        QMessageBox.Yes | QMessageBox.No,
+        QMessageBox.No
+      )
+
+      if reply == QMessageBox.No:
+        return
+
+    super().accept()
 
 class GUI(QMainWindow):
   def __init__(self):
@@ -360,26 +360,26 @@ class GUI(QMainWindow):
 
     # Check each widget type
     for widget_type, name in widget_types.items():
-        widgets = self.findChildren(widget_type)
-        for widget in widgets:
-            widget.setFont(font)
-            # Preserve the blue color for edit_input while clearing other styles
-            if widget == self.edit_input:
-                theme = 'dark' if self.is_dark_mode else 'light'
-                widget.setStyleSheet(f"""
-                    QTextEdit {{
-                        color: {self.colors[theme]['current'].name()};
-                        background-color: {self.colors[theme]['bg'].name()};
-                        border: 1px solid {self.colors[theme]['fg'].name()};
-                    }}
-                """)
-            elif isinstance(widget, (QTextEdit, QLineEdit)):
-                widget.setStyleSheet("")
+      widgets = self.findChildren(widget_type)
+      for widget in widgets:
+        widget.setFont(font)
+        # Preserve the blue color for edit_input while clearing other styles
+        if widget == self.edit_input:
+          theme = 'dark' if self.is_dark_mode else 'light'
+          widget.setStyleSheet(f"""
+QTextEdit {{
+    color: {self.colors[theme]['current'].name()};
+    background-color: {self.colors[theme]['bg'].name()};
+    border: 1px solid {self.colors[theme]['fg'].name()};
+}}
+          """)
+        elif isinstance(widget, (QTextEdit, QLineEdit)):
+          widget.setStyleSheet("")
 
     # Special handling for tab bars
     for tab_widget in self.findChildren(QTabWidget):
-        tab_bar = tab_widget.tabBar()
-        tab_bar.setFont(font)
+      tab_bar = tab_widget.tabBar()
+      tab_bar.setFont(font)
 
     # Force update of specific displays
     self.story_display.document().setDefaultFont(font)
@@ -408,83 +408,83 @@ class GUI(QMainWindow):
 
     # Comprehensive style sheet for all widgets
     style_sheet = f"""
-      QMainWindow {{
-        background-color: {self.colors[theme]['bg'].name()};
-        color: {self.colors[theme]['fg'].name()};
-      }}
-      QMenuBar {{
-        background-color: {self.colors[theme]['bg'].name()};
-        color: {self.colors[theme]['fg'].name()};
-      }}
-      QMenuBar::item {{
-        background-color: {self.colors[theme]['bg'].name()};
-        color: {self.colors[theme]['fg'].name()};
-      }}
-      QMenuBar::item:selected {{
-        background-color: {self.colors[theme]['fg'].name()};
-        color: {self.colors[theme]['bg'].name()};
-      }}
-      QWidget {{
-        background-color: {self.colors[theme]['bg'].name()};
-        color: {self.colors[theme]['fg'].name()};
-      }}
-      QTextEdit {{
-        background-color: {self.colors[theme]['bg'].name()};
-        color: {self.colors[theme]['fg'].name()};
-        border: 1px solid {self.colors[theme]['fg'].name()};
-      }}
-      QTabWidget::pane {{
-        border: 1px solid {self.colors[theme]['fg'].name()};
-        background-color: {self.colors[theme]['bg'].name()};
-      }}
-      QTabBar::tab {{
-        background-color: {self.colors[theme]['bg'].name()};
-        color: {self.colors[theme]['fg'].name()};
-        padding: 8px;
-        border: 1px solid {self.colors[theme]['fg'].name()};
-        margin-right: 2px;
-      }}
-      QTabBar::tab:selected {{
-        background-color: {self.colors[theme]['tab_selected_bg'].name()};
-        color: {self.colors[theme]['tab_selected_fg'].name()};
-        border-bottom: 2px solid {self.colors[theme]['tab_selected_fg'].name()};
-      }}
-      QTabBar::tab:hover {{
-        background-color: {self.colors[theme]['tab_selected_bg'].name()};
-        color: {self.colors[theme]['tab_selected_fg'].name()};
-      }}
-      QTitleBar {{
-        background-color: {self.colors[theme]['bg'].name()};
-        color: {self.colors[theme]['fg'].name()};
-      }}
-      QPushButton {{
-        background-color: {self.colors[theme]['bg'].name()};
-        color: {self.colors[theme]['fg'].name()};
-        border: 1px solid {self.colors[theme]['fg'].name()};
-        padding: 5px;
-        min-width: 80px;
-      }}
-      QPushButton:hover {{
-        background-color: {self.colors[theme]['fg'].name()};
-        color: {self.colors[theme]['bg'].name()};
-      }}
-      QLabel {{
-        color: {self.colors[theme]['fg'].name()};
-        background-color: transparent;
-      }}
-      QCheckBox {{
-        color: {self.colors[theme]['fg'].name()};
-        background-color: transparent;
-      }}
-      QSpinBox {{
-        background-color: {self.colors[theme]['bg'].name()};
-        color: {self.colors[theme]['fg'].name()};
-        border: 1px solid {self.colors[theme]['fg'].name()};
-      }}
-      QFrame {{
-        background-color: {self.colors[theme]['bg'].name()};
-        color: {self.colors[theme]['fg'].name()};
-      }}
+QMainWindow {{
+  background-color: {self.colors[theme]['bg'].name()};
+  color: {self.colors[theme]['fg'].name()};
+}}
+QMenuBar {{
+  background-color: {self.colors[theme]['bg'].name()};
+  color: {self.colors[theme]['fg'].name()};
+}}
+QMenuBar::item {{
+  background-color: {self.colors[theme]['bg'].name()};
+  color: {self.colors[theme]['fg'].name()};
+}}
+QMenuBar::item:selected {{
+  background-color: {self.colors[theme]['fg'].name()};
+  color: {self.colors[theme]['bg'].name()};
+}}
+QWidget {{
+  background-color: {self.colors[theme]['bg'].name()};
+  color: {self.colors[theme]['fg'].name()};
+}}
+QTextEdit {{
+  background-color: {self.colors[theme]['bg'].name()};
+  color: {self.colors[theme]['fg'].name()};
+  border: 1px solid {self.colors[theme]['fg'].name()};
+}}
+QTabWidget::pane {{
+  border: 1px solid {self.colors[theme]['fg'].name()};
+  background-color: {self.colors[theme]['bg'].name()};
+}}
+QTabBar::tab {{
+  background-color: {self.colors[theme]['bg'].name()};
+  color: {self.colors[theme]['fg'].name()};
+  padding: 8px;
+  border: 1px solid {self.colors[theme]['fg'].name()};
+  margin-right: 2px;
+}}
+QTabBar::tab:selected {{
+  background-color: {self.colors[theme]['tab_selected_bg'].name()};
+  color: {self.colors[theme]['tab_selected_fg'].name()};
+  border-bottom: 2px solid {self.colors[theme]['tab_selected_fg'].name()};
+}}
+QTabBar::tab:hover {{
+  background-color: {self.colors[theme]['tab_selected_bg'].name()};
+  color: {self.colors[theme]['tab_selected_fg'].name()};
+}}
+QTitleBar {{
+  background-color: {self.colors[theme]['bg'].name()};
+  color: {self.colors[theme]['fg'].name()};
+}}
+QPushButton {{
+  background-color: {self.colors[theme]['bg'].name()};
+  color: {self.colors[theme]['fg'].name()};
+  border: 1px solid {self.colors[theme]['fg'].name()};
+  padding: 5px;
+  min-width: 80px;
+}}
+QPushButton:hover {{
+  background-color: {self.colors[theme]['fg'].name()};
+  color: {self.colors[theme]['bg'].name()};
+}}
+QLabel {{
+  color: {self.colors[theme]['fg'].name()};
+  background-color: transparent;
+}}
+QCheckBox {{
+  color: {self.colors[theme]['fg'].name()};
+  background-color: transparent;
+}}
+QSpinBox {{
+  background-color: {self.colors[theme]['bg'].name()};
+  color: {self.colors[theme]['fg'].name()};
+  border: 1px solid {self.colors[theme]['fg'].name()};
+}}
+QFrame {{
+  background-color: {self.colors[theme]['bg'].name()};
+  color: {self.colors[theme]['fg'].name()};
+}}
     """
 
     # Apply style sheet to the main window
@@ -495,11 +495,11 @@ class GUI(QMainWindow):
 
     # Update Edit Blue input color
     self.edit_input.setStyleSheet(f"""
-      QTextEdit {{
-        color: {self.colors[theme]['current'].name()};
-        background-color: {self.colors[theme]['bg'].name()};
-        border: 1px solid {self.colors[theme]['fg'].name()};
-      }}
+QTextEdit {{
+  color: {self.colors[theme]['current'].name()};
+  background-color: {self.colors[theme]['bg'].name()};
+  border: 1px solid {self.colors[theme]['fg'].name()};
+}}
     """)
 
   def on_tab_changed(self, index: int):
@@ -519,14 +519,14 @@ class GUI(QMainWindow):
       format.setForeground(self.colors[theme]['fg'])
       cursor.setCharFormat(format)
       cursor.insertText(
-        "Load your story file using File → Load Story... (Ctrl+O)\n\n"
-        "Story Development Display:\n\n"
-        "• Black/White text represents validated/saved story content\n"
-        "• Blue text shows current AI proposal or your edits\n"
-        "• Edit blue proposals in the 'Edit Blue' tab below\n"
-        "• Use 'Save Blue & Continue' to validate blue text\n"
-        "• Start writing your story by using the 'Edit Blue' tab\n"
-        "• Or let AI start by using 'Save Blue & Continue'"
+"Load your story file using File → Load Story... (Ctrl+O)\n\n"
+"Story Development Display:\n\n"
+"• Black/White text represents validated/saved story content\n"
+"• Blue text shows current AI proposal or your edits\n"
+"• Edit blue proposals in the 'Edit Blue' tab below\n"
+"• Use 'Save Blue & Continue' to validate blue text\n"
+"• Start writing your story by using the 'Edit Blue' tab\n"
+"• Or let AI start by using 'Save Blue & Continue'"
       )
       return
 
@@ -653,21 +653,21 @@ class GUI(QMainWindow):
     edit_layout = QVBoxLayout(edit_tab)
     self.edit_input = QTextEdit()
     self.edit_input.setPlaceholderText(
-      "Edit Blue Proposal:\n\n"
-      "• Type or paste text here to modify the blue proposal\n"
-      "• Changes appear instantly in the preview panel above\n"
-      "• Use this tab to start your story or edit AI suggestions\n"
-      "• Switch to 'Save Blue & Continue' when ready to proceed\n"
-      "• Your edits are preserved when switching between tabs"
+"Edit Blue Proposal:\n\n"
+"• Type or paste text here to modify the blue proposal\n"
+"• Changes appear instantly in the preview panel above\n"
+"• Use this tab to start your story or edit AI suggestions\n"
+"• Switch to 'Save Blue & Continue' when ready to proceed\n"
+"• Your edits are preserved when switching between tabs"
     )
     # Set text color to match the preview blue color
     theme = 'dark' if self.is_dark_mode else 'light'
     self.edit_input.setStyleSheet(f"""
-      QTextEdit {{
-        color: {self.colors[theme]['current'].name()};
-        background-color: {self.colors[theme]['bg'].name()};
-        border: 1px solid {self.colors[theme]['fg'].name()};
-      }}
+QTextEdit {{
+  color: {self.colors[theme]['current'].name()};
+  background-color: {self.colors[theme]['bg'].name()};
+  border: 1px solid {self.colors[theme]['fg'].name()};
+}}
     """)
     self.edit_input.textChanged.connect(self.update_blue_preview)
     edit_layout.addWidget(self.edit_input)
@@ -694,12 +694,12 @@ class GUI(QMainWindow):
     continue_layout = QVBoxLayout(continue_tab)
     self.continue_input = QTextEdit()
     self.continue_input.setPlaceholderText(
-      "Save Blue & Continue:\n\n"
-      "• Current blue text will be saved as permanent Black/White text\n"
-      "• Type guidance here for the AI to continue the story\n"
-      "• Leave empty to let AI continue based on context alone\n"
-      "• AI will generate a new blue proposal as continuation\n"
-      "• Use XML tags to structure your guidance (optional)"
+"Save Blue & Continue:\n\n"
+"• Current blue text will be saved as permanent Black/White text\n"
+"• Type guidance here for the AI to continue the story\n"
+"• Leave empty to let AI continue based on context alone\n"
+"• AI will generate a new blue proposal as continuation\n"
+"• Use XML tags to structure your guidance (optional)"
     )
     continue_layout.addWidget(self.continue_input)
     self.input_tabs.addTab(continue_tab, "Save Blue && Continue")
@@ -709,12 +709,12 @@ class GUI(QMainWindow):
     rewrite_layout = QVBoxLayout(rewrite_tab)
     self.rewrite_input = QTextEdit()
     self.rewrite_input.setPlaceholderText(
-      "Discard Blue & Rewrite:\n\n"
-      "• Current blue proposal will be discarded\n"
-      "• Type guidance here for the AI to generate new content\n"
-      "• AI will provide a completely new blue proposal\n"
-      "• Useful when the current proposal needs major changes\n"
-      "• Previous Black/White (saved) text remains unchanged"
+"Discard Blue & Rewrite:\n\n"
+"• Current blue proposal will be discarded\n"
+"• Type guidance here for the AI to generate new content\n"
+"• AI will provide a completely new blue proposal\n"
+"• Useful when the current proposal needs major changes\n"
+"• Previous Black/White (saved) text remains unchanged"
     )
     rewrite_layout.addWidget(self.rewrite_input)
     self.input_tabs.addTab(rewrite_tab, "Discard Blue && Rewrite")

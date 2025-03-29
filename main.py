@@ -17,7 +17,8 @@ from langchain_core.runnables import RunnableWithMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.messages import BaseMessage
 
-from gui import GUI, APIKeyDialog # Import the GUI class
+from gui import GUI, APIKeyDialog  # Import the GUI class
+
 
 class APIMonitorCallback(BaseCallbackHandler):
   def __init__(self, api_monitor):
@@ -25,11 +26,11 @@ class APIMonitorCallback(BaseCallbackHandler):
     self.api_monitor = api_monitor
 
   def _serialize_for_json(self, obj):
-    if hasattr(obj, 'model_dump'):
+    if hasattr(obj, "model_dump"):
       return obj.model_dump()
-    if hasattr(obj, '__dict__'):
+    if hasattr(obj, "__dict__"):
       return obj.__dict__
-    if hasattr(obj, 'hex'):
+    if hasattr(obj, "hex"):
       return str(obj)
     return str(obj)
 
@@ -46,7 +47,7 @@ class APIMonitorCallback(BaseCallbackHandler):
   def on_llm_end(self, response, **kwargs):
     try:
       self.api_monitor.append("RAW GROQ API RESPONSE:")
-      response_dict = response.model_dump() if hasattr(response, 'model_dump') else str(response)
+      response_dict = response.model_dump() if hasattr(response, "model_dump") else str(response)
       # Use ensure_ascii=False here too
       self.api_monitor.append(f"{json.dumps(response_dict, indent=2, ensure_ascii=False)}\n")
       self.api_monitor.append("-" * 50 + "\n")
@@ -56,13 +57,10 @@ class APIMonitorCallback(BaseCallbackHandler):
   def on_llm_error(self, error, **kwargs):
     try:
       self.api_monitor.append("RAW API ERROR:")
-      error_dict = {
-        "error_type": error.__class__.__name__,
-        "error_message": str(error)
-      }
+      error_dict = {"error_type": error.__class__.__name__, "error_message": str(error)}
       error_json = json.dumps(error_dict, indent=2, ensure_ascii=False, default=self._serialize_for_json)
       kwargs_json = json.dumps(kwargs, indent=2, ensure_ascii=False, default=self._serialize_for_json)
-      
+
       self.api_monitor.append(f"error:\n{error_json}\n")
       self.api_monitor.append(f"kwargs:\n{kwargs_json}\n")
       print(f"Error occurred:\n{error_json}")
@@ -76,6 +74,7 @@ class APIMonitorCallback(BaseCallbackHandler):
   def on_llm_new_token(self, token: str, **kwargs):
     """Called when streaming is enabled and a new token is received"""
     self.api_monitor.append(f"Token: {token}\n")
+
 
 class SystemPromptManager:
   DEFAULT_PROMPT = """Eres un colaborador narrativo.
@@ -96,7 +95,7 @@ class SystemPromptManager:
     """Load existing config or create default one"""
     if self.config_path.exists():
       try:
-        with open(self.config_path, 'r', encoding='utf-8') as f:
+        with open(self.config_path, "r", encoding="utf-8") as f:
           return json.load(f)
       except json.JSONDecodeError:
         # If JSON is invalid, create new default config
@@ -105,22 +104,13 @@ class SystemPromptManager:
 
   def _create_default_config(self) -> dict:
     """Create default configuration"""
-    default_config = {
-      "active_prompt": "default",
-      "prompts": {
-        "default": {
-          "content": self.DEFAULT_PROMPT,
-          "created_at": datetime.now(timezone.utc).isoformat(),
-          "last_used": datetime.now(timezone.utc).isoformat()
-        }
-      }
-    }
+    default_config = {"active_prompt": "default", "prompts": {"default": {"content": self.DEFAULT_PROMPT, "created_at": datetime.now(timezone.utc).isoformat(), "last_used": datetime.now(timezone.utc).isoformat()}}}
     self._save_config(default_config)
     return default_config
 
   def _save_config(self, config: dict) -> None:
     """Save config to file"""
-    with open(self.config_path, 'w', encoding='utf-8') as f:
+    with open(self.config_path, "w", encoding="utf-8") as f:
       json.dump(config, f, indent=4, ensure_ascii=False)
 
   def get_active_prompt(self) -> str:
@@ -139,11 +129,7 @@ class SystemPromptManager:
 
   def save_prompt(self, name: str, content: str) -> None:
     """Save a new prompt or update existing one"""
-    self.prompts["prompts"][name] = {
-      "content": content,
-      "created_at": self.prompts["prompts"].get(name, {}).get("created_at", datetime.now(timezone.utc).isoformat()),
-      "last_used": datetime.now(timezone.utc).isoformat()
-    }
+    self.prompts["prompts"][name] = {"content": content, "created_at": self.prompts["prompts"].get(name, {}).get("created_at", datetime.now(timezone.utc).isoformat()), "last_used": datetime.now(timezone.utc).isoformat()}
     self._save_config(self.prompts)
 
   def get_all_prompts(self) -> t.Dict[str, dict]:
@@ -162,15 +148,16 @@ class SystemPromptManager:
       return True
     return False
 
+
 class WindowBufferHistory(BaseChatMessageHistory):
   def __init__(self):
-    self._messages = [] # Use _messages as internal storage
-    self.max_tokens = 5 # Keep last 5 message pairs
+    self._messages = []  # Use _messages as internal storage
+    self.max_tokens = 5  # Keep last 5 message pairs
 
   def add_message(self, message):
     self._messages.append(message)
     # Keep only last 5 pairs of messages
-    if len(self._messages) > 10: # 5 pairs = 10 messages
+    if len(self._messages) > 10:  # 5 pairs = 10 messages
       self._messages = self._messages[-10:]
 
   def clear(self):
@@ -212,14 +199,15 @@ class WindowBufferHistory(BaseChatMessageHistory):
     if len(self._messages) > 0 and isinstance(self._messages[-1], AIMessage):
       self._messages[-1].content = content
 
-class Narrative(GUI): # Inherit from GUI
+
+class Narrative(GUI):  # Inherit from GUI
   def __init__(self):
     super().__init__()
-    
+
     # Check for API key before initializing
     if not self.ensure_api_key():
       sys.exit(1)
-      
+
     # Initialize system prompt from prompt manager
     self.prompt_manager = SystemPromptManager()
     self.system_prompt = self.prompt_manager.get_active_prompt()
@@ -233,24 +221,24 @@ class Narrative(GUI): # Inherit from GUI
   def ensure_api_key(self):
     """Ensure GROQ_API_KEY is available, prompt user if not"""
     # Try to load from .env first
-    env_path = Path('.env')
+    env_path = Path(".env")
     load_dotenv(env_path)
-    
-    api_key = os.getenv('GROQ_API_KEY')
+
+    api_key = os.getenv("GROQ_API_KEY")
     if api_key:  # Accept any non-empty key from .env
-        return True
-        
+      return True
+
     # If no key found, show dialog
     dialog = APIKeyDialog(self)
     if dialog.exec():
-        api_key = dialog.get_api_key()
-        if api_key:
-            # Save to .env file
-            env_path.touch(exist_ok=True)
-            set_key(env_path, 'GROQ_API_KEY', api_key)
-            os.environ['GROQ_API_KEY'] = api_key
-            return True
-        
+      api_key = dialog.get_api_key()
+      if api_key:
+        # Save to .env file
+        env_path.touch(exist_ok=True)
+        set_key(env_path, "GROQ_API_KEY", api_key)
+        os.environ["GROQ_API_KEY"] = api_key
+        return True
+
     return False
 
   def populate_models_and_prompts(self):
@@ -297,22 +285,10 @@ class Narrative(GUI): # Inherit from GUI
     # Create custom callback
     callback = APIMonitorCallback(self.api_monitor)
 
-    llm = ChatGroq(
-      api_key=os.environ['GROQ_API_KEY'],
-      model_name=selected_model,
-      temperature=self.temperature,
-      max_tokens=self.max_tokens,
-      streaming=False,
-      verbose=True,
-      callbacks=[callback] # Add the custom callback
-    )
+    llm = ChatGroq(api_key=os.environ["GROQ_API_KEY"], model_name=selected_model, temperature=self.temperature, max_tokens=self.max_tokens, streaming=False, verbose=True, callbacks=[callback])  # Add the custom callback
 
     # Create the chat prompt template
-    prompt = ChatPromptTemplate.from_messages([
-      SystemMessage(content=self.system_prompt),
-      MessagesPlaceholder(variable_name="history"),
-      HumanMessagePromptTemplate.from_template("{input}")
-    ])
+    prompt = ChatPromptTemplate.from_messages([SystemMessage(content=self.system_prompt), MessagesPlaceholder(variable_name="history"), HumanMessagePromptTemplate.from_template("{input}")])
 
     # Create the runnable chain
     chain = prompt | llm
@@ -324,12 +300,7 @@ class Narrative(GUI): # Inherit from GUI
     else:
       history = WindowBufferHistory()
 
-    self.conversation = RunnableWithMessageHistory(
-      chain,
-      lambda session_id: history,
-      input_messages_key="input",
-      history_messages_key="history"
-    )
+    self.conversation = RunnableWithMessageHistory(chain, lambda session_id: history, input_messages_key="input", history_messages_key="history")
 
     # Store session ID for this instance
     self.session_id = "default_session"
@@ -337,26 +308,20 @@ class Narrative(GUI): # Inherit from GUI
   def get_available_models(self) -> List[str]:
     """Fetch available models from Groq API"""
     try:
-      client = Groq(api_key=os.environ['GROQ_API_KEY'])
+      client = Groq(api_key=os.environ["GROQ_API_KEY"])
       models = client.models.list()
       # Filter and sort models based on our needs
       available_models = []
-      for model in models.data: # Access the data attribute of the response
-        model_id = model.id if hasattr(model, 'id') else str(model)
-        if 'whisper' not in model_id.lower():
+      for model in models.data:  # Access the data attribute of the response
+        model_id = model.id if hasattr(model, "id") else str(model)
+        if "whisper" not in model_id.lower():
           available_models.append(model_id)
       return sorted(available_models, reverse=True)
     except Exception as e:
-      if hasattr(self, 'api_monitor'):
+      if hasattr(self, "api_monitor"):
         self.api_monitor.append(f"Error fetching models: {str(e)}\n")
       # Fallback to hardcoded models if API fails
-      return [
-        'qwen-qwq-32b',
-        'deepseek-r1-distill-qwen-32b',
-        'deepseek-r1-distill-llama-70b',
-        'mixtral-8x7b-32768',
-        'llama-3.3-70b-versatile'
-      ]
+      return ["qwen-qwq-32b", "deepseek-r1-distill-qwen-32b", "deepseek-r1-distill-llama-70b", "mixtral-8x7b-32768", "llama-3.3-70b-versatile"]
 
   def on_model_changed(self):
     """Reinitialize the LLM when model selection changes"""
@@ -406,21 +371,21 @@ class Narrative(GUI): # Inherit from GUI
 
   def simulate_conversation_turn(self, content: str):
     """Simulate a conversation turn with the given content"""
-    if hasattr(self, 'conversation'):
+    if hasattr(self, "conversation"):
       # Create config with session_id
       config = {"configurable": {"session_id": self.session_id}}
       # Get history through the config mechanism
       history = self.conversation._merge_configs(config)["configurable"]["message_history"]
-      
+
       # Strip out think XML tags before adding to history
-      cleaned_content = re.sub(r'\n*<think>.*?</think>\n*', '', content, flags=re.DOTALL).strip()
-      
+      cleaned_content = re.sub(r"\n*<think>.*?</think>\n*", "", content, flags=re.DOTALL).strip()
+
       # Get user input from continue tab, fallback to emoji if empty
       user_input = self.current_user_input
       self.current_user_input = self.continue_input.toPlainText().strip()
       if not user_input:
         user_input = "✒️✍️📜"
-      
+
       # Add simulated conversation pair
       history.add_message(HumanMessage(content=user_input))
       history.add_message(AIMessage(content=cleaned_content))
@@ -450,13 +415,13 @@ class Narrative(GUI): # Inherit from GUI
     if len(history.messages) >= 2:
       # Store the last user input before removing
       self.current_user_input = history.messages[-2].content
-      
+
       # Don't copy the default emoji input to the fields
       if last_user_input != "✒️✍️📜":
         # Fill both input fields with the last user request
         self.continue_input.setPlainText(last_user_input)
         self.rewrite_input.setPlainText(last_user_input)
-      
+
       # Remove last pair
       history.messages = history.messages[:-2]
       # Update blue text with previous response or empty
@@ -469,39 +434,39 @@ class Narrative(GUI): # Inherit from GUI
 
   def update_context_display(self):
     """Update the context monitor display"""
-    if hasattr(self, 'conversation'):
-        config = {"configurable": {"session_id": self.session_id}}
-        history = self.conversation._merge_configs(config)["configurable"]["message_history"]
-        messages = history.messages
-        pair_count = len(messages) // 2  # Integer division to get pairs
-        
-        # Update tab name
-        self.right_tab_widget.setTabText(0, f"Context {pair_count}/5")  # Use 0 for first tab
-        
-        # Clear current display
-        self.context_display.clear()
-        
-        # Format and display messages
-        cursor = self.context_display.textCursor()
-        format = self.context_display.currentCharFormat()
-        
-        for msg in messages:
-            if isinstance(msg, HumanMessage):
-                format.setForeground(self.colors['dark' if self.is_dark_mode else 'light']['canon'])
-                cursor.insertText("User: ", format)
-                cursor.insertText(f"{msg.content}\n\n", format)
-            else:  # Assistant message
-                format.setForeground(self.colors['dark' if self.is_dark_mode else 'light']['fg'])
-                cursor.insertText("Assistant: ", format)
-                cursor.insertText(f"{msg.content}\n\n", format)
-            
-            self.context_display.setTextCursor(cursor)
+    if hasattr(self, "conversation"):
+      config = {"configurable": {"session_id": self.session_id}}
+      history = self.conversation._merge_configs(config)["configurable"]["message_history"]
+      messages = history.messages
+      pair_count = len(messages) // 2  # Integer division to get pairs
+
+      # Update tab name
+      self.right_tab_widget.setTabText(0, f"Context {pair_count}/5")  # Use 0 for first tab
+
+      # Clear current display
+      self.context_display.clear()
+
+      # Format and display messages
+      cursor = self.context_display.textCursor()
+      format = self.context_display.currentCharFormat()
+
+      for msg in messages:
+        if isinstance(msg, HumanMessage):
+          format.setForeground(self.colors["dark" if self.is_dark_mode else "light"]["canon"])
+          cursor.insertText("User: ", format)
+          cursor.insertText(f"{msg.content}\n\n", format)
+        else:  # Assistant message
+          format.setForeground(self.colors["dark" if self.is_dark_mode else "light"]["fg"])
+          cursor.insertText("Assistant: ", format)
+          cursor.insertText(f"{msg.content}\n\n", format)
+
+        self.context_display.setTextCursor(cursor)
 
   def send_message(self):
     """Handle sending messages based on selected tab"""
     current_tab = self.input_tabs.currentIndex()
 
-    if current_tab == 3: # Custom System Prompt tab
+    if current_tab == 3:  # Custom System Prompt tab
       new_system_prompt = self.system_input.toPlainText().strip()
       if new_system_prompt:
         self.system_prompt = new_system_prompt
@@ -514,41 +479,36 @@ class Narrative(GUI): # Inherit from GUI
 
     try:
       # Get input based on current tab
-      if current_tab == 0: # Edit Blue tab
+      if current_tab == 0:  # Edit Blue tab
         user_input = self.continue_input.toPlainText().strip()
-      elif current_tab == 1: # Continue next section
+      elif current_tab == 1:  # Continue next section
         user_input = self.continue_input.toPlainText().strip()
         self.commit_blue_text()
-      elif current_tab == 2: # Rewrite previous section
+      elif current_tab == 2:  # Rewrite previous section
         user_input = self.rewrite_input.toPlainText().strip()
 
       # Wrap input with XML tags if specified
       xml_tag = self.xml_tag_input.text().strip()
       if user_input or xml_tag:
         user_input = self.wrap_text_with_xml(user_input, xml_tag)
-        self.current_user_input = user_input # track last user input
+        self.current_user_input = user_input  # track last user input
 
         # Get history before the new response
         config = {"configurable": {"session_id": self.session_id}}
         history = self.conversation._merge_configs(config)["configurable"]["message_history"]
 
         # Invoke the chain with message history
-        response = self.conversation.invoke(
-          {"input": user_input},
-          config={"configurable": {"session_id": self.session_id}}
-        )
+        response = self.conversation.invoke({"input": user_input}, config={"configurable": {"session_id": self.session_id}})
 
         # Extract the response content
-        response_text = response.content if hasattr(response, 'content') else str(response)
+        response_text = response.content if hasattr(response, "content") else str(response)
 
         # Update conversation log with full response (including think tags)
         self.update_conversation_log(user_input, response_text)
 
         # Extract narrative content
-        narrative_parts = [part.strip()
-          for part in re.split(r'\n*<think>.*?</think>\n*', response_text, flags=re.DOTALL)
-          if part.strip()]
-        self.update_blue_text(' '.join(narrative_parts))
+        narrative_parts = [part.strip() for part in re.split(r"\n*<think>.*?</think>\n*", response_text, flags=re.DOTALL) if part.strip()]
+        self.update_blue_text(" ".join(narrative_parts))
 
         # Remove the automatically added response with think tags
         if len(history.messages) >= 2:
@@ -564,8 +524,8 @@ class Narrative(GUI): # Inherit from GUI
         # self.edit_input.setPlainText(self.current_narrative)
 
         # Extract thinking content
-        think_blocks = re.findall(r'<think>\n*(.*?)\n*</think>', response_text, flags=re.DOTALL)
-        thinking_content = '\n\n'.join(block.strip() for block in think_blocks)
+        think_blocks = re.findall(r"<think>\n*(.*?)\n*</think>", response_text, flags=re.DOTALL)
+        thinking_content = "\n\n".join(block.strip() for block in think_blocks)
         self.thinking_display.setText(thinking_content)
 
         # Clear input of current tab
@@ -586,26 +546,26 @@ class Narrative(GUI): # Inherit from GUI
     format = self.conversation_log.currentCharFormat()
 
     # Log user input
-    format.setForeground(self.colors['dark' if self.is_dark_mode else 'light']['canon'])  # Changed to canon (grey)
+    format.setForeground(self.colors["dark" if self.is_dark_mode else "light"]["canon"])  # Changed to canon (grey)
     cursor.insertText("User: ", format)
     cursor.insertText(f"{user_input}\n\n")
 
     # Log assistant response
-    format.setForeground(self.colors['dark' if self.is_dark_mode else 'light']['fg'])
+    format.setForeground(self.colors["dark" if self.is_dark_mode else "light"]["fg"])
     cursor.insertText("Assistant: ", format)
 
     # Split and format response based on XML think tags
-    parts = re.split(r'(\n*<think>\n*.*?\n*</think>\n*)', response, flags=re.DOTALL)
+    parts = re.split(r"(\n*<think>\n*.*?\n*</think>\n*)", response, flags=re.DOTALL)
     for part in parts:
       if part and part.strip():  # Only process non-empty parts
-        if '<think>' in part:
+        if "<think>" in part:
           # Extract and format think block content
-          think_content = re.sub(r'\n*<think>\n*(.*?)\n*</think>\n*', r'\1', part, flags=re.DOTALL)
-          format.setForeground(self.colors['dark' if self.is_dark_mode else 'light']['canon'])
+          think_content = re.sub(r"\n*<think>\n*(.*?)\n*</think>\n*", r"\1", part, flags=re.DOTALL)
+          format.setForeground(self.colors["dark" if self.is_dark_mode else "light"]["canon"])
           cursor.insertText(think_content.strip() + "\n", format)
         else:
           # Format regular text
-          format.setForeground(self.colors['dark' if self.is_dark_mode else 'light']['fg'])
+          format.setForeground(self.colors["dark" if self.is_dark_mode else "light"]["fg"])
           cursor.insertText(part.strip() + "\n", format)
 
     cursor.insertText("\n")
@@ -615,71 +575,71 @@ class Narrative(GUI): # Inherit from GUI
   def load_story(self, empty: bool = False):
     """Handle story file loading or create empty story
     Args:
-        empty (bool): If True, simulates loading an empty file without path
+      empty (bool): If True, simulates loading an empty file without path
     """
     if not self.check_unsaved_changes():  # Check handled by GUI parent class
-        return
+      return
 
     # Simulate loading empty file
     self.current_file_path = None
     textfile_content = ""
-    self.update_blue_text("") # Use central method instead of direct assignment
+    self.update_blue_text("")  # Use central method instead of direct assignment
 
     if not empty:
-        # Regular file loading
-        file_path = self.get_open_file_name("Load Story", "Text Files (*.txt);;All Files (*.*)")
-        if not file_path:
-            return
-            
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                textfile_content = f.read()
-            self.current_file_path = file_path
-        except Exception as e:
-            self.show_error_message("Error", f"Failed to load story: {str(e)}")
-            print(f"Error loading story: {str(e)}")
-            return
+      # Regular file loading
+      file_path = self.get_open_file_name("Load Story", "Text Files (*.txt);;All Files (*.*)")
+      if not file_path:
+        return
+
+      try:
+        with open(file_path, "r", encoding="utf-8") as f:
+          textfile_content = f.read()
+        self.current_file_path = file_path
+      except Exception as e:
+        self.show_error_message("Error", f"Failed to load story: {str(e)}")
+        print(f"Error loading story: {str(e)}")
+        return
 
     if textfile_content:
-        # Clean any think tags from the loaded content
-        textfile_content = re.sub(r'\n*<think>.*?</think>\n*', '', textfile_content, flags=re.DOTALL).strip()
-        # Split into meaningful chunks with minimum content
-        MIN_CHUNK_SIZE = 2000  # characters
-        raw_chunks = [chunk.strip() for chunk in textfile_content.split('\n\n') if chunk.strip()]
+      # Clean any think tags from the loaded content
+      textfile_content = re.sub(r"\n*<think>.*?</think>\n*", "", textfile_content, flags=re.DOTALL).strip()
+      # Split into meaningful chunks with minimum content
+      MIN_CHUNK_SIZE = 2000  # characters
+      raw_chunks = [chunk.strip() for chunk in textfile_content.split("\n\n") if chunk.strip()]
 
-        meaningful_chunks = []
-        current_chunk = []
-        current_length = 0
+      meaningful_chunks = []
+      current_chunk = []
+      current_length = 0
 
-        for chunk in raw_chunks:
-            current_chunk.append(chunk)
-            current_length += len(chunk)
+      for chunk in raw_chunks:
+        current_chunk.append(chunk)
+        current_length += len(chunk)
 
-            if current_length >= MIN_CHUNK_SIZE:
-                meaningful_chunks.append('\n\n'.join(current_chunk))
-                current_chunk = []
-                current_length = 0
+        if current_length >= MIN_CHUNK_SIZE:
+          meaningful_chunks.append("\n\n".join(current_chunk))
+          current_chunk = []
+          current_length = 0
 
-        # Add any remaining content as final chunk
-        if current_chunk:
-            meaningful_chunks.append('\n\n'.join(current_chunk))
+      # Add any remaining content as final chunk
+      if current_chunk:
+        meaningful_chunks.append("\n\n".join(current_chunk))
 
-        # Store as validated canon
-        self.canon_validated = meaningful_chunks
+      # Store as validated canon
+      self.canon_validated = meaningful_chunks
     else:
-        self.canon_validated = []
+      self.canon_validated = []
 
     # Initialize new conversation
     self.system_prompt = self.prompt_manager.get_active_prompt()  # Add this line
     self.initialize_llm()
 
     if textfile_content:
-        # Simulate conversation history with last chunks (up to 5)
-        chunks_for_history = self.canon_validated[-5:] if len(self.canon_validated) > 5 else self.canon_validated
-        for chunk in chunks_for_history:
-            self.simulate_conversation_turn(chunk)
+      # Simulate conversation history with last chunks (up to 5)
+      chunks_for_history = self.canon_validated[-5:] if len(self.canon_validated) > 5 else self.canon_validated
+      for chunk in chunks_for_history:
+        self.simulate_conversation_turn(chunk)
     else:
-        self.update_blue_text("") # Use central method instead of direct assignment
+      self.update_blue_text("")  # Use central method instead of direct assignment
 
     # Update displays
     self.update_story_display()
@@ -687,13 +647,13 @@ class Narrative(GUI): # Inherit from GUI
 
     # Update window title and status
     if empty:
-        self.setWindowTitle("Narrative Collaboration System")
-        print("Created new empty story")
+      self.setWindowTitle("Narrative Collaboration System")
+      print("Created new empty story")
     else:
-        self.setWindowTitle(f"Narrative Collaboration System - {os.path.basename(self.current_file_path)}")
-        print(f"Loaded story from: {self.current_file_path}")
-        if textfile_content:
-            print(f"Created simulated history with {len(chunks_for_history)} chunks")
+      self.setWindowTitle(f"Narrative Collaboration System - {os.path.basename(self.current_file_path)}")
+      print(f"Loaded story from: {self.current_file_path}")
+      if textfile_content:
+        print(f"Created simulated history with {len(chunks_for_history)} chunks")
 
   def save_story(self, save_as=False):
     """Handle story saving"""
@@ -705,9 +665,9 @@ class Narrative(GUI): # Inherit from GUI
 
     try:
       # Combine all validated content
-      story_content = '\n\n'.join(self.canon_validated)
+      story_content = "\n\n".join(self.canon_validated)
 
-      with open(self.current_file_path, 'w', encoding='utf-8') as f:
+      with open(self.current_file_path, "w", encoding="utf-8") as f:
         f.write(story_content)
 
       # Update window title
@@ -723,46 +683,46 @@ class Narrative(GUI): # Inherit from GUI
     """Central method to update blue text state"""
     # Check if edit_input already contains the same text
     if self.edit_input.toPlainText() != text:
-        self.current_narrative = text
-        # Temporarily block signals to avoid recursive updates
-        self.edit_input.blockSignals(True)
-        self.edit_input.setPlainText(text)
-        self.edit_input.blockSignals(False)
+      self.current_narrative = text
+      # Temporarily block signals to avoid recursive updates
+      self.edit_input.blockSignals(True)
+      self.edit_input.setPlainText(text)
+      self.edit_input.blockSignals(False)
     else:
-        # Just update current_narrative if text is different
-        if self.current_narrative != text:
-            self.current_narrative = text
-    
+      # Just update current_narrative if text is different
+      if self.current_narrative != text:
+        self.current_narrative = text
+
     self.update_story_display()
 
   def restore_previous_response(self):
     """Restore the previous AI response if available"""
-    if hasattr(self, 'conversation'):
-        config = {"configurable": {"session_id": self.session_id}}
-        history = self.conversation._merge_configs(config)["configurable"]["message_history"]
-        if history.last_response:
-            self.update_blue_text(history.last_response.content)
-        else:
-            self.update_blue_text("")
+    if hasattr(self, "conversation"):
+      config = {"configurable": {"session_id": self.session_id}}
+      history = self.conversation._merge_configs(config)["configurable"]["message_history"]
+      if history.last_response:
+        self.update_blue_text(history.last_response.content)
+      else:
+        self.update_blue_text("")
 
   def handle_model_response(self, response_text: str):
     """Process and update UI with model response"""
     # Extract narrative content (removing think tags)
-    narrative_parts = [part.strip()
-        for part in re.split(r'\n*<think>.*?</think>\n*', response_text, flags=re.DOTALL)
-        if part.strip()]
-    
+    narrative_parts = [part.strip() for part in re.split(r"\n*<think>.*?</think>\n*", response_text, flags=re.DOTALL) if part.strip()]
+
     # Update blue text through central method
-    self.update_blue_text(' '.join(narrative_parts))
-    
+    self.update_blue_text(" ".join(narrative_parts))
+
     # Update thinking display
-    think_blocks = re.findall(r'<think>\n*(.*?)\n*</think>', response_text, flags=re.DOTALL)
-    thinking_content = '\n\n'.join(block.strip() for block in think_blocks)
+    think_blocks = re.findall(r"<think>\n*(.*?)\n*</think>", response_text, flags=re.DOTALL)
+    thinking_content = "\n\n".join(block.strip() for block in think_blocks)
     self.thinking_display.setText(thinking_content)
+
 
 if __name__ == "__main__":
   from PySide6.QtWidgets import QApplication
+
   app = QApplication(sys.argv)
-  window = Narrative() # Instantiate Narrative class
+  window = Narrative()  # Instantiate Narrative class
   window.show()
   sys.exit(app.exec())
