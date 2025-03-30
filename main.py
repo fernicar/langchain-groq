@@ -152,87 +152,87 @@ class SystemPromptManager:
 
 
 class TokenWindowDualStateMemory(BaseChatMessageHistory):
-    """Memory implementation that maintains a token window and dual state management"""
+  """Memory implementation that maintains a token window and dual state management"""
     
-    def __init__(self, llm: BaseLanguageModel, max_tokens: int = 12000):
-        self.max_tokens = max_tokens
-        self.llm = llm
-        # Use GPT-3.5 tokenizer as a reasonable default
-        self.encoding = encoding_for_model("gpt-3.5-turbo")
-        
-        self._messages_committed = []  # Committed/backup state
-        self._messages_proposal = []   # Current proposal state
-        self._has_pending_proposal = False
+  def __init__(self, llm: BaseLanguageModel, max_tokens: int = 12000):
+    self.max_tokens = max_tokens
+    self.llm = llm
+    # Use GPT-3.5 tokenizer as a reasonable default
+    self.encoding = encoding_for_model("gpt-3.5-turbo")
     
-    @property
-    def messages(self) -> List[BaseMessage]:
-        """Return current active messages (proposal if exists, otherwise committed)"""
-        return self._messages_proposal if self._has_pending_proposal else self._messages_committed
+    self._messages_committed = []  # Committed/backup state
+    self._messages_proposal = []   # Current proposal state
+    self._has_pending_proposal = False
+
+  @property
+  def messages(self) -> List[BaseMessage]:
+    """Return current active messages (proposal if exists, otherwise committed)"""
+    return self._messages_proposal if self._has_pending_proposal else self._messages_committed
+  
+  @messages.setter
+  def messages(self, messages: List[BaseMessage]):
+    """Set messages and mark as proposal"""
+    self._messages_proposal = messages
+    self._has_pending_proposal = True
+    self._truncate_messages(self._messages_proposal)
+  
+  def add_message(self, message: BaseMessage) -> None:
+    """Add message to proposal state"""
+    if not self._has_pending_proposal:
+      # If no proposal exists, create one from current committed state
+      self._messages_proposal = self._messages_committed.copy()
+      self._has_pending_proposal = True
+    self._messages_proposal.append(message)
+    self._truncate_messages(self._messages_proposal)
+  
+  def prepare_for_response(self) -> None:
+    """Backup current state before LLM response"""
+    self._messages_committed = self.messages.copy()
+    self._has_pending_proposal = False
+  
+  def commit_proposal(self) -> None:
+    """Commit current proposal to backup state"""
+    if self._has_pending_proposal:
+      self._messages_committed = self._messages_proposal.copy()
+      self._has_pending_proposal = False
+  
+  def discard_proposal(self) -> None:
+    """Discard current proposal and restore from backup"""
+    self._messages_proposal = self._messages_committed.copy()
+    self._has_pending_proposal = False
+  
+  def clear(self) -> None:
+    """Clear all messages"""
+    self._messages_committed = []
+    self._messages_proposal = []
+    self._has_pending_proposal = False
+  
+  def _count_tokens(self, text: str) -> int:
+    """Count tokens in a text string"""
+    return len(self.encoding.encode(text))
+  
+  def _truncate_messages(self, messages: List[BaseMessage]) -> None:
+    """Remove oldest messages until total tokens is under max_tokens"""
+    current_tokens = 0
+    truncated_messages = []
+      
+    # Process messages in reverse (newest first)
+    for message in reversed(messages):
+      tokens = self._count_tokens(message.content)
+      
+      # If adding this message would exceed max tokens, stop
+      if current_tokens + tokens > self.max_tokens:
+          break
+          
+      # Add message to start of list (maintaining original order)
+      truncated_messages.insert(0, message)
+      current_tokens += tokens
     
-    @messages.setter
-    def messages(self, messages: List[BaseMessage]):
-        """Set messages and mark as proposal"""
-        self._messages_proposal = messages
-        self._has_pending_proposal = True
-        self._truncate_messages(self._messages_proposal)
-    
-    def add_message(self, message: BaseMessage) -> None:
-        """Add message to proposal state"""
-        if not self._has_pending_proposal:
-            # If no proposal exists, create one from current committed state
-            self._messages_proposal = self._messages_committed.copy()
-            self._has_pending_proposal = True
-        self._messages_proposal.append(message)
-        self._truncate_messages(self._messages_proposal)
-    
-    def prepare_for_response(self) -> None:
-        """Backup current state before LLM response"""
-        self._messages_committed = self.messages.copy()
-        self._has_pending_proposal = False
-    
-    def commit_proposal(self) -> None:
-        """Commit current proposal to backup state"""
-        if self._has_pending_proposal:
-            self._messages_committed = self._messages_proposal.copy()
-            self._has_pending_proposal = False
-    
-    def discard_proposal(self) -> None:
-        """Discard current proposal and restore from backup"""
-        self._messages_proposal = self._messages_committed.copy()
-        self._has_pending_proposal = False
-    
-    def clear(self) -> None:
-        """Clear all messages"""
-        self._messages_committed = []
-        self._messages_proposal = []
-        self._has_pending_proposal = False
-    
-    def _count_tokens(self, text: str) -> int:
-        """Count tokens in a text string"""
-        return len(self.encoding.encode(text))
-    
-    def _truncate_messages(self, messages: List[BaseMessage]) -> None:
-        """Remove oldest messages until total tokens is under max_tokens"""
-        current_tokens = 0
-        truncated_messages = []
-        
-        # Process messages in reverse (newest first)
-        for message in reversed(messages):
-            tokens = self._count_tokens(message.content)
-            
-            # If adding this message would exceed max tokens, stop
-            if current_tokens + tokens > self.max_tokens:
-                break
-                
-            # Add message to start of list (maintaining original order)
-            truncated_messages.insert(0, message)
-            current_tokens += tokens
-        
-        # Update the appropriate message list
-        if messages is self._messages_proposal:
-            self._messages_proposal = truncated_messages
-        else:
-            self._messages_committed = truncated_messages
+    # Update the appropriate message list
+    if messages is self._messages_proposal:
+      self._messages_proposal = truncated_messages
+    else:
+      self._messages_committed = truncated_messages
 
 
 class Narrative(GUI):  # Inherit from GUI
@@ -316,34 +316,34 @@ class Narrative(GUI):  # Inherit from GUI
     callback = APIMonitorCallback(self.api_monitor)
 
     llm = ChatGroq(
-        api_key=os.environ["GROQ_API_KEY"],
-        model_name=selected_model,
-        temperature=self.temperature,
-        max_tokens=self.max_tokens,
-        streaming=False,
-        verbose=True,
-        callbacks=[callback]
+      api_key=os.environ["GROQ_API_KEY"],
+      model_name=selected_model,
+      temperature=self.temperature,
+      max_tokens=self.max_tokens,
+      streaming=False,
+      verbose=True,
+      callbacks=[callback]
     )
 
     prompt = ChatPromptTemplate.from_messages([
-        SystemMessage(content=self.system_prompt),
-        MessagesPlaceholder(variable_name="history"),
-        HumanMessagePromptTemplate.from_template("{input}")
+      SystemMessage(content=self.system_prompt),
+      MessagesPlaceholder(variable_name="history"),
+      HumanMessagePromptTemplate.from_template("{input}")
     ])
 
     chain = prompt | llm
 
     if self.primed_history is not None:
-        history = self.primed_history
-        self.primed_history = None
+      history = self.primed_history
+      self.primed_history = None
     else:
-        history = TokenWindowDualStateMemory(llm, max_tokens=12000)
+      history = TokenWindowDualStateMemory(llm, max_tokens=12000)
 
     self.conversation = RunnableWithMessageHistory(
-        chain,
-        lambda session_id: history,
-        input_messages_key="input",
-        history_messages_key="history"
+      chain,
+      lambda session_id: history,
+      input_messages_key="input",
+      history_messages_key="history"
     )
 
     self.session_id = "default_session"
@@ -457,53 +457,53 @@ class Narrative(GUI):  # Inherit from GUI
     
     # Update UI to reflect the committed state
     if history.messages:
-        last_message = history.messages[-1]
-        if isinstance(last_message, AIMessage):
-            self.update_blue_text(last_message.content)
+      last_message = history.messages[-1]
+      if isinstance(last_message, AIMessage):
+          self.update_blue_text(last_message.content)
     else:
-        self.update_blue_text("")
+      self.update_blue_text("")
     
     self.update_context_display()
 
   def update_context_display(self):
     """Update the context monitor display"""
     if hasattr(self, "conversation"):
-        config = {"configurable": {"session_id": self.session_id}}
-        history = self.conversation._merge_configs(config)["configurable"]["message_history"]
-        
-        # Use committed messages instead of proposal state
-        messages = history._messages_committed
-        
-        # Calculate token count if using TokenWindowMemory
-        token_count = None
-        if isinstance(history, TokenWindowDualStateMemory):
-            token_count = sum(history._count_tokens(msg.content) for msg in messages)
-        
-        # Update tab name with appropriate count
-        if token_count is not None:
-            self.right_tab_widget.setTabText(0, f"Context ({token_count}/{history.max_tokens} tokens)")
-        else:
-            pair_count = len(messages) // 2
-            self.right_tab_widget.setTabText(0, f"Context {pair_count}/5")
+      config = {"configurable": {"session_id": self.session_id}}
+      history = self.conversation._merge_configs(config)["configurable"]["message_history"]
+      
+      # Use committed messages instead of proposal state
+      messages = history._messages_committed
+      
+      # Calculate token count if using TokenWindowMemory
+      token_count = None
+      if isinstance(history, TokenWindowDualStateMemory):
+        token_count = sum(history._count_tokens(msg.content) for msg in messages)
+      
+      # Update tab name with appropriate count
+      if token_count is not None:
+        self.right_tab_widget.setTabText(0, f"Context ({token_count}/{history.max_tokens} tokens)")
+      else:
+        pair_count = len(messages) // 2
+        self.right_tab_widget.setTabText(0, f"Context {pair_count}/5")
 
-        # Clear current display
-        self.context_display.clear()
+      # Clear current display
+      self.context_display.clear()
 
-        # Format and display messages
-        cursor = self.context_display.textCursor()
-        format = self.context_display.currentCharFormat()
+      # Format and display messages
+      cursor = self.context_display.textCursor()
+      format = self.context_display.currentCharFormat()
 
-        for msg in messages:
-            if isinstance(msg, HumanMessage):
-                format.setForeground(self.colors["dark" if self.is_dark_mode else "light"]["canon"])
-                cursor.insertText("User: ", format)
-                cursor.insertText(f"{msg.content}\n\n", format)
-            else:  # Assistant message
-                format.setForeground(self.colors["dark" if self.is_dark_mode else "light"]["fg"])
-                cursor.insertText("Assistant: ", format)
-                cursor.insertText(f"{msg.content}\n\n", format)
+      for msg in messages:
+        if isinstance(msg, HumanMessage):
+          format.setForeground(self.colors["dark" if self.is_dark_mode else "light"]["canon"])
+          cursor.insertText("User: ", format)
+          cursor.insertText(f"{msg.content}\n\n", format)
+        else:  # Assistant message
+          format.setForeground(self.colors["dark" if self.is_dark_mode else "light"]["fg"])
+          cursor.insertText("Assistant: ", format)
+          cursor.insertText(f"{msg.content}\n\n", format)
 
-            self.context_display.setTextCursor(cursor)
+        self.context_display.setTextCursor(cursor)
 
   def send_message(self):
     """Handle sending messages based on selected tab"""
@@ -565,7 +565,6 @@ class Narrative(GUI):  # Inherit from GUI
         narrative_parts = [part.strip() for part in re.split(r"\n*<think>.*?</think>\n*", response_text, flags=re.DOTALL) if part.strip()]
         # Join parts and strip any leading/trailing whitespace to match Edit Blue behavior
         narrative_text = " ".join(narrative_parts).strip()
-# print(f"Narrative Text: {narrative_text}")
 
         # Remove last AI message if it exists
         if history.messages and isinstance(history.messages[-1], AIMessage):

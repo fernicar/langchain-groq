@@ -10,7 +10,7 @@ from PySide6.QtGui import QFont, QColor, QPalette, QAction
 class APIKeyDialog(QDialog):
   EXPECTED_KEY_LENGTH = 56  # Class variable for expected key length
   EXPECTED_KEY_PREFIX = 'gsk_'  # Class variable for expected key prefix
-  
+
   def __init__(self, parent=None):
     super().__init__(parent)
     self.setWindowTitle("Groq API Key Setup")
@@ -126,24 +126,24 @@ class GUI(QMainWindow):
     self.font_size = 10
     self.is_dark_mode = True
     self.colors = {
-      'dark': {
-        'bg': QColor('#2b2b2b'),
-        'fg': QColor('#ffffff'),
-        'canon': QColor('#a9a9a9'),
-        'current': QColor('#6495ed'),
-        'xml': QColor('#98fb98'),
-        'tab_selected_bg': QColor('#e0e0e0'),
-        'tab_selected_fg': QColor('#2b2b2b')
-      },
-      'light': {
-        'bg': QColor('#ffffff'),
-        'fg': QColor('#000000'),
-        'canon': QColor('#696969'),
-        'current': QColor('#4169e1'),
-        'xml': QColor('#228b22'),
-        'tab_selected_bg': QColor('#444444'),
-        'tab_selected_fg': QColor('#ffffff')
-      }
+'dark': {
+  'bg': QColor('#2b2b2b'),
+  'fg': QColor('#ffffff'),
+  'canon': QColor('#a9a9a9'),
+  'current': QColor('#6495ed'),
+  'xml': QColor('#98fb98'),
+  'tab_selected_bg': QColor('#e0e0e0'),
+  'tab_selected_fg': QColor('#2b2b2b')
+},
+'light': {
+  'bg': QColor('#ffffff'),
+  'fg': QColor('#000000'),
+  'canon': QColor('#696969'),
+  'current': QColor('#4169e1'),
+  'xml': QColor('#228b22'),
+  'tab_selected_bg': QColor('#444444'),
+  'tab_selected_fg': QColor('#ffffff')
+}
     }
 
     # Initialize default values for LLM parameters
@@ -237,7 +237,7 @@ class GUI(QMainWindow):
     context_tab = QWidget()
     context_layout = QVBoxLayout(context_tab)
     context_layout.setContentsMargins(0, 0, 0, 0)
-    
+
     self.context_display = QTextEdit()
     self.context_display.setReadOnly(True)
     self.context_display.setPlaceholderText(
@@ -346,7 +346,7 @@ class GUI(QMainWindow):
     """Update font size for all text widgets"""
     self.font_size = size
     font = QFont("Default", size)
-    
+
     # Create a list of widget types to check
     widget_types = {
       QTextEdit: "Text Edit",
@@ -673,20 +673,20 @@ QTextEdit {{
     """)
     self.edit_input.textChanged.connect(self.update_blue_preview)
     edit_layout.addWidget(self.edit_input)
-    
+
     # Create button layout for Edit Blue tab
     edit_button_layout = QHBoxLayout()
-    
+
     # Add "Commit Blue" button
     self.commit_blue_button = QPushButton("Commit Blue Now")
     self.commit_blue_button.clicked.connect(self.commit_blue_text)
     edit_button_layout.addWidget(self.commit_blue_button)
-    
+
     # Add "Discard Blue Now" button
     self.discard_blue_button = QPushButton("Discard Blue Now")
     self.discard_blue_button.clicked.connect(self.discard_last_conversation_pair)
     edit_button_layout.addWidget(self.discard_blue_button)
-    
+
     # Add button layout to Edit Blue tab
     edit_layout.addLayout(edit_button_layout)
     self.input_tabs.addTab(edit_tab, "Edit Blue")
