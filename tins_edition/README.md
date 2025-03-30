@@ -66,17 +66,17 @@ graph TD
         direction TB
         MenuBar["File Menu (New, Load, Save, SaveAs, Exit)"]
         Toolbar["Bottom Toolbar (Model, Temp, MaxTokens, XMLTag, FontSize, Theme, SysPrompt, Send)"]
-        MainSplitterV[Vertical Splitter]
+        MainSplitterH[Horizontal Splitter]
 
-        MenuBar --> MainSplitterV
-        MainSplitterV --> TopPane[Display Area]
-        MainSplitterV --> BottomPane["Input Area (Tabs)"]
+        MenuBar --> MainSplitterH
+        MainSplitterH --> TopPane[Display Area]
+        MainSplitterH --> BottomPane["Input Area (Tabs)"]
         BottomPane --> Toolbar
 
         subgraph TopPane
             direction LR
-            DisplaySplitterH[Horizontal Splitter] --> LeftDisplay[Story Display]
-            DisplaySplitterH --> RightDisplay["Monitor Tabs"]
+            DisplaySplitterV[Vertical Splitter] --> LeftDisplay[Story Display]
+            DisplaySplitterV --> RightDisplay["Monitor Tabs"]
         end
 
         subgraph LeftDisplay
