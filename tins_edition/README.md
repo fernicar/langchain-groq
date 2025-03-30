@@ -64,82 +64,92 @@ The application utilizes a multi-pane desktop interface, preferably implemented 
 graph TD
     subgraph MainWindow
         direction TB
-        MenuBar[File Menu (New, Load, Save, SaveAs, Exit)]
-        MainSplitterV[Vertical Splitter] --> TopPane[Display Area]
-        MainSplitterV --> BottomPane[Input Area (Tabs)]
-        Toolbar[Bottom Toolbar (Model, Temp, MaxTokens, XMLTag, FontSize, Theme, SysPrompt, Send)]
+        MenuBar["File Menu (New, Load, Save, SaveAs, Exit)"]
+        Toolbar["Bottom Toolbar (Model, Temp, MaxTokens, XMLTag, FontSize, Theme, SysPrompt, Send)"]
+        MainSplitterV[Vertical Splitter]
+
+        MenuBar --> MainSplitterV
+        MainSplitterV --> TopPane[Display Area]
+        MainSplitterV --> BottomPane["Input Area (Tabs)"]
+        BottomPane --> Toolbar
 
         subgraph TopPane
             direction LR
             DisplaySplitterH[Horizontal Splitter] --> LeftDisplay[Story Display]
-            DisplaySplitterH --> RightDisplay[Monitor Tabs]
+            DisplaySplitterH --> RightDisplay["Monitor Tabs"]
         end
 
         subgraph LeftDisplay
             direction TB
-            StoryLabel[Label: "Story Development..."]
-            StoryDisplay[Text Area (Read-only): Shows canon (grey/bw) + proposal (blue)]
+            StoryLabel["Label: Story Development..."]
+            StoryDisplay["Text Area (Read-only): Shows canon (grey/bw) + proposal (blue)"]
+            StoryLabel --> StoryDisplay
         end
 
         subgraph RightDisplay
             direction TB
-            MonitorTabs[Tab Widget] --> ContextTab[Context Monitor]
-            MonitorTabs --> ThinkingTab[Thinking Process]
-            MonitorTabs --> ConversationTab[Conversation Log]
-            MonitorTabs --> APITab[API Monitor]
+            MonitorTabs[Tab Widget] --> ContextTab["Context Monitor"]
+            MonitorTabs --> ThinkingTab["Thinking Process"]
+            MonitorTabs --> ConversationTab["Conversation Log"]
+            MonitorTabs --> APITab["API Monitor"]
         end
 
         subgraph ContextTab
             direction TB
-            ContextDisplay[Text Area (Read-only): Shows recent history pairs & token count]
-            CommitButtonContext[Button: "Commit Blue now"]
+            ContextDisplay["Text Area (Read-only): Shows recent history pairs & token count"]
+            CommitButtonContext["Button: Commit Blue now"]
+            ContextDisplay --> CommitButtonContext
         end
 
         subgraph ThinkingTab
             direction TB
-            ThinkingDisplay[Text Area (Read-only): Shows content from <think> tags]
+            ThinkingDisplay["Text Area (Read-only): Shows content from <think> tags"]
         end
 
         subgraph ConversationTab
             direction TB
-            ConversationLog[Text Area (Read-only): Shows full User/Assistant dialogue]
+            ConversationLog["Text Area (Read-only): Shows full User/Assistant dialogue"]
         end
 
         subgraph APITab
             direction TB
-            APIMonitorDisplay[Text Area (Read-only): Shows raw API calls/responses/errors]
-            ClearAPIMonitor[Button: "Clear Monitor"]
+            APIMonitorDisplay["Text Area (Read-only): Shows raw API calls/responses/errors"]
+            ClearAPIMonitor["Button: Clear Monitor"]
+            APIMonitorDisplay --> ClearAPIMonitor
         end
 
         subgraph BottomPane
             direction TB
-            InputTabs[Tab Widget] --> EditBlueTab[Edit Blue]
-            InputTabs --> ContinueTab[Save Blue & Continue]
-            InputTabs --> RewriteTab[Discard Blue & Rewrite]
-            InputTabs --> SystemPromptTab[Customize System Prompt]
+            InputTabs[Tab Widget] --> EditBlueTab["Edit Blue"]
+            InputTabs --> ContinueTab["Save Blue & Continue"]
+            InputTabs --> RewriteTab["Discard Blue & Rewrite"]
+            InputTabs --> SystemPromptTab["Customize System Prompt"]
         end
 
         subgraph EditBlueTab
             direction TB
-            EditInput[Text Area: Edit current blue text proposal]
-            EditButtons[HBox: CommitButtonEdit, DiscardButtonEdit]
+            EditInput["Text Area: Edit current blue text proposal"]
+            EditButtons["HBox: CommitButtonEdit, DiscardButtonEdit"]
+            EditInput --> EditButtons
         end
 
         subgraph ContinueTab
             direction TB
-            ContinueInput[Text Area: Input guidance for next section]
+            ContinueInput["Text Area: Input guidance for next section"]
         end
 
         subgraph RewriteTab
             direction TB
-            RewriteInput[Text Area: Input guidance for rewriting proposal]
+            RewriteInput["Text Area: Input guidance for rewriting proposal"]
         end
 
         subgraph SystemPromptTab
             direction TB
-            PromptNameLayout[HBox: Label, PromptNameInput (LineEdit)]
-            SystemInput[Text Area: Edit system prompt content]
-            PromptButtons[HBox: SavePromptButton, DeletePromptButton]
+            PromptNameLayout["HBox: Label, PromptNameInput (LineEdit)"]
+            SystemInput["Text Area: Edit system prompt content"]
+            PromptButtons["HBox: SavePromptButton, DeletePromptButton"]
+            PromptNameLayout --> SystemInput
+            SystemInput --> PromptButtons
         end
 
     end
