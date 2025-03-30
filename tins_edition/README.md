@@ -1,4 +1,4 @@
-# Narrative Collaboration System (TINS Edition)
+# Narrative Collaboration System ([TINS Edition](https://ThereIsNoSource.com))
 
 <!-- Zero Source Specification v1.0 -->
 <!-- ZS:PLATFORM:DESKTOP -->
