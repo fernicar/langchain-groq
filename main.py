@@ -16,6 +16,8 @@ from groq import Groq
 from langchain_core.runnables import RunnableWithMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.messages import BaseMessage
+from langchain_core.language_models import BaseLanguageModel
+from tiktoken import encoding_for_model
 
 from gui import GUI, APIKeyDialog  # Import the GUI class
 
@@ -149,55 +151,88 @@ class SystemPromptManager:
     return False
 
 
-class WindowBufferHistory(BaseChatMessageHistory):
-  def __init__(self):
-    self._messages = []  # Use _messages as internal storage
-    self.max_tokens = 5  # Keep last 5 message pairs
-
-  def add_message(self, message):
-    self._messages.append(message)
-    # Keep only last 5 pairs of messages
-    if len(self._messages) > 10:  # 5 pairs = 10 messages
-      self._messages = self._messages[-10:]
-
-  def clear(self):
-    self._messages = []
-
-  @property
-  def messages(self) -> List[BaseMessage]:
-    # import pdb; pdb.set_trace()  # Add breakpoint here
-    return self._messages
-
-  # Add new method to replace all messages
-  @messages.setter
-  def messages(self, messages: List[BaseMessage]):
-    self._messages = messages
-
-  @property
-  def last_request(self) -> t.Optional[HumanMessage]:
-    """Get the last User request if it exists"""
-    if len(self._messages) > 1 and isinstance(self._messages[-2], HumanMessage):
-      return self._messages[-2]
-    return None
-
-  @last_request.setter
-  def last_request(self, content: str) -> None:
-    """Set the content of the last User request"""
-    if len(self._messages) > 1 and isinstance(self._messages[-2], HumanMessage):
-      self._messages[-2].content = content
-
-  @property
-  def last_response(self) -> t.Optional[AIMessage]:
-    """Get the last AI response if it exists"""
-    if len(self._messages) > 0 and isinstance(self._messages[-1], AIMessage):
-      return self._messages[-1]
-    return None
-
-  @last_response.setter
-  def last_response(self, content: str) -> None:
-    """Set the content of the last AI response"""
-    if len(self._messages) > 0 and isinstance(self._messages[-1], AIMessage):
-      self._messages[-1].content = content
+class TokenWindowDualStateMemory(BaseChatMessageHistory):
+    """Memory implementation that maintains a token window and dual state management"""
+    
+    def __init__(self, llm: BaseLanguageModel, max_tokens: int = 12000):
+        self.max_tokens = max_tokens
+        self.llm = llm
+        # Use GPT-3.5 tokenizer as a reasonable default
+        self.encoding = encoding_for_model("gpt-3.5-turbo")
+        
+        self._messages_committed = []  # Committed/backup state
+        self._messages_proposal = []   # Current proposal state
+        self._has_pending_proposal = False
+    
+    @property
+    def messages(self) -> List[BaseMessage]:
+        """Return current active messages (proposal if exists, otherwise committed)"""
+        return self._messages_proposal if self._has_pending_proposal else self._messages_committed
+    
+    @messages.setter
+    def messages(self, messages: List[BaseMessage]):
+        """Set messages and mark as proposal"""
+        self._messages_proposal = messages
+        self._has_pending_proposal = True
+        self._truncate_messages(self._messages_proposal)
+    
+    def add_message(self, message: BaseMessage) -> None:
+        """Add message to proposal state"""
+        if not self._has_pending_proposal:
+            # If no proposal exists, create one from current committed state
+            self._messages_proposal = self._messages_committed.copy()
+            self._has_pending_proposal = True
+        self._messages_proposal.append(message)
+        self._truncate_messages(self._messages_proposal)
+    
+    def prepare_for_response(self) -> None:
+        """Backup current state before LLM response"""
+        self._messages_committed = self.messages.copy()
+        self._has_pending_proposal = False
+    
+    def commit_proposal(self) -> None:
+        """Commit current proposal to backup state"""
+        if self._has_pending_proposal:
+            self._messages_committed = self._messages_proposal.copy()
+            self._has_pending_proposal = False
+    
+    def discard_proposal(self) -> None:
+        """Discard current proposal and restore from backup"""
+        self._messages_proposal = self._messages_committed.copy()
+        self._has_pending_proposal = False
+    
+    def clear(self) -> None:
+        """Clear all messages"""
+        self._messages_committed = []
+        self._messages_proposal = []
+        self._has_pending_proposal = False
+    
+    def _count_tokens(self, text: str) -> int:
+        """Count tokens in a text string"""
+        return len(self.encoding.encode(text))
+    
+    def _truncate_messages(self, messages: List[BaseMessage]) -> None:
+        """Remove oldest messages until total tokens is under max_tokens"""
+        current_tokens = 0
+        truncated_messages = []
+        
+        # Process messages in reverse (newest first)
+        for message in reversed(messages):
+            tokens = self._count_tokens(message.content)
+            
+            # If adding this message would exceed max tokens, stop
+            if current_tokens + tokens > self.max_tokens:
+                break
+                
+            # Add message to start of list (maintaining original order)
+            truncated_messages.insert(0, message)
+            current_tokens += tokens
+        
+        # Update the appropriate message list
+        if messages is self._messages_proposal:
+            self._messages_proposal = truncated_messages
+        else:
+            self._messages_committed = truncated_messages
 
 
 class Narrative(GUI):  # Inherit from GUI
@@ -276,33 +311,41 @@ class Narrative(GUI):  # Inherit from GUI
     """Initialize the language model and conversation chain"""
     load_dotenv()
 
-    # Get the current system prompt from manager before initializing
-    self.system_prompt = self.prompt_manager.get_active_prompt()  # Add this line
-
-    # Get the currently selected model from the combo box
+    self.system_prompt = self.prompt_manager.get_active_prompt()
     selected_model = self.model_selector.currentText()
-
-    # Create custom callback
     callback = APIMonitorCallback(self.api_monitor)
 
-    llm = ChatGroq(api_key=os.environ["GROQ_API_KEY"], model_name=selected_model, temperature=self.temperature, max_tokens=self.max_tokens, streaming=False, verbose=True, callbacks=[callback])  # Add the custom callback
+    llm = ChatGroq(
+        api_key=os.environ["GROQ_API_KEY"],
+        model_name=selected_model,
+        temperature=self.temperature,
+        max_tokens=self.max_tokens,
+        streaming=False,
+        verbose=True,
+        callbacks=[callback]
+    )
 
-    # Create the chat prompt template
-    prompt = ChatPromptTemplate.from_messages([SystemMessage(content=self.system_prompt), MessagesPlaceholder(variable_name="history"), HumanMessagePromptTemplate.from_template("{input}")])
+    prompt = ChatPromptTemplate.from_messages([
+        SystemMessage(content=self.system_prompt),
+        MessagesPlaceholder(variable_name="history"),
+        HumanMessagePromptTemplate.from_template("{input}")
+    ])
 
-    # Create the runnable chain
     chain = prompt | llm
 
-    # Create the runnable with message history
     if self.primed_history is not None:
-      history = self.primed_history
-      self.primed_history = None  # Consume the primed history
+        history = self.primed_history
+        self.primed_history = None
     else:
-      history = WindowBufferHistory()
+        history = TokenWindowDualStateMemory(llm, max_tokens=12000)
 
-    self.conversation = RunnableWithMessageHistory(chain, lambda session_id: history, input_messages_key="input", history_messages_key="history")
+    self.conversation = RunnableWithMessageHistory(
+        chain,
+        lambda session_id: history,
+        input_messages_key="input",
+        history_messages_key="history"
+    )
 
-    # Store session ID for this instance
     self.session_id = "default_session"
 
   def get_available_models(self) -> List[str]:
@@ -393,74 +436,74 @@ class Narrative(GUI):  # Inherit from GUI
 
   def commit_blue_text(self):
     """Commit current blue text to canon"""
-    if self.current_narrative:
-      # Simulate conversation turn for the current narrative
-      self.simulate_conversation_turn(self.current_narrative)
-      # Add to canon
-      self.canon_validated.append(self.current_narrative)
-      # Clear current narrative using central method
-      self.update_blue_text("")
-      # Clear continue input
-      # self.continue_input.clear()
-      # Update displays
-      # self.update_story_display()
-      # self.edit_input.clear()
-      # self.current_narrative = ""
+    config = {"configurable": {"session_id": self.session_id}}
+    history = self.conversation._merge_configs(config)["configurable"]["message_history"]
+    
+    # Commit the current proposal
+    history.commit_proposal()
+    
+    # Your existing commit code...
+    self.canon_validated.append(self.current_narrative)
+    self.update_blue_text("")
+    self.update_context_display()
 
   def discard_last_conversation_pair(self):
     """Remove the last user input and AI response pair from history"""
     config = {"configurable": {"session_id": self.session_id}}
     history = self.conversation._merge_configs(config)["configurable"]["message_history"]
-    last_user_input = self.current_user_input
-    if len(history.messages) >= 2:
-      # Store the last user input before removing
-      self.current_user_input = history.messages[-2].content
-
-      # Don't copy the default emoji input to the fields
-      if last_user_input != "✒️✍️📜":
-        # Fill both input fields with the last user request
-        self.continue_input.setPlainText(last_user_input)
-        self.rewrite_input.setPlainText(last_user_input)
-
-      # Remove last pair
-      history.messages = history.messages[:-2]
-      # Update blue text with previous response or empty
-      if history.last_response:
-        self.update_blue_text(history.last_response.content)
-      else:
+    
+    # Discard the current proposal
+    history.discard_proposal()
+    
+    # Update UI to reflect the committed state
+    if history.messages:
+        last_message = history.messages[-1]
+        if isinstance(last_message, AIMessage):
+            self.update_blue_text(last_message.content)
+    else:
         self.update_blue_text("")
-      self.update_context_display()
-      print("Blue proposal discarded.")
+    
+    self.update_context_display()
 
   def update_context_display(self):
     """Update the context monitor display"""
     if hasattr(self, "conversation"):
-      config = {"configurable": {"session_id": self.session_id}}
-      history = self.conversation._merge_configs(config)["configurable"]["message_history"]
-      messages = history.messages
-      pair_count = len(messages) // 2  # Integer division to get pairs
+        config = {"configurable": {"session_id": self.session_id}}
+        history = self.conversation._merge_configs(config)["configurable"]["message_history"]
+        
+        # Use committed messages instead of proposal state
+        messages = history._messages_committed
+        
+        # Calculate token count if using TokenWindowMemory
+        token_count = None
+        if isinstance(history, TokenWindowDualStateMemory):
+            token_count = sum(history._count_tokens(msg.content) for msg in messages)
+        
+        # Update tab name with appropriate count
+        if token_count is not None:
+            self.right_tab_widget.setTabText(0, f"Context ({token_count}/{history.max_tokens} tokens)")
+        else:
+            pair_count = len(messages) // 2
+            self.right_tab_widget.setTabText(0, f"Context {pair_count}/5")
 
-      # Update tab name
-      self.right_tab_widget.setTabText(0, f"Context {pair_count}/5")  # Use 0 for first tab
+        # Clear current display
+        self.context_display.clear()
 
-      # Clear current display
-      self.context_display.clear()
+        # Format and display messages
+        cursor = self.context_display.textCursor()
+        format = self.context_display.currentCharFormat()
 
-      # Format and display messages
-      cursor = self.context_display.textCursor()
-      format = self.context_display.currentCharFormat()
+        for msg in messages:
+            if isinstance(msg, HumanMessage):
+                format.setForeground(self.colors["dark" if self.is_dark_mode else "light"]["canon"])
+                cursor.insertText("User: ", format)
+                cursor.insertText(f"{msg.content}\n\n", format)
+            else:  # Assistant message
+                format.setForeground(self.colors["dark" if self.is_dark_mode else "light"]["fg"])
+                cursor.insertText("Assistant: ", format)
+                cursor.insertText(f"{msg.content}\n\n", format)
 
-      for msg in messages:
-        if isinstance(msg, HumanMessage):
-          format.setForeground(self.colors["dark" if self.is_dark_mode else "light"]["canon"])
-          cursor.insertText("User: ", format)
-          cursor.insertText(f"{msg.content}\n\n", format)
-        else:  # Assistant message
-          format.setForeground(self.colors["dark" if self.is_dark_mode else "light"]["fg"])
-          cursor.insertText("Assistant: ", format)
-          cursor.insertText(f"{msg.content}\n\n", format)
-
-        self.context_display.setTextCursor(cursor)
+            self.context_display.setTextCursor(cursor)
 
   def send_message(self):
     """Handle sending messages based on selected tab"""
@@ -471,7 +514,6 @@ class Narrative(GUI):  # Inherit from GUI
       if new_system_prompt:
         self.system_prompt = new_system_prompt
         self.save_system_prompt()
-        # Add this line to ensure prompt is refreshed from manager
         self.system_prompt = self.prompt_manager.get_active_prompt()
         self.initialize_llm()
         print("System prompt updated and saved.")
@@ -483,9 +525,13 @@ class Narrative(GUI):  # Inherit from GUI
         user_input = self.continue_input.toPlainText().strip()
       elif current_tab == 1:  # Continue next section
         user_input = self.continue_input.toPlainText().strip()
-        self.commit_blue_text()
+        self.commit_blue_text()  # Commit before continuing
       elif current_tab == 2:  # Rewrite previous section
         user_input = self.rewrite_input.toPlainText().strip()
+        # Discard current proposal before rewriting
+        config = {"configurable": {"session_id": self.session_id}}
+        history = self.conversation._merge_configs(config)["configurable"]["message_history"]
+        history.discard_proposal()  # This will restore from committed state
 
       # Wrap input with XML tags if specified
       xml_tag = self.xml_tag_input.text().strip()
@@ -497,8 +543,17 @@ class Narrative(GUI):  # Inherit from GUI
         config = {"configurable": {"session_id": self.session_id}}
         history = self.conversation._merge_configs(config)["configurable"]["message_history"]
 
+        # Backup current state before getting LLM response
+        history.prepare_for_response()
+
+        # # Add user message to history
+        # history.add_message(HumanMessage(content=user_input))
+
         # Invoke the chain with message history
-        response = self.conversation.invoke({"input": user_input}, config={"configurable": {"session_id": self.session_id}})
+        response = self.conversation.invoke(
+          {"input": user_input}, 
+          config={"configurable": {"session_id": self.session_id}}
+        )
 
         # Extract the response content
         response_text = response.content if hasattr(response, "content") else str(response)
@@ -508,25 +563,24 @@ class Narrative(GUI):  # Inherit from GUI
 
         # Extract narrative content
         narrative_parts = [part.strip() for part in re.split(r"\n*<think>.*?</think>\n*", response_text, flags=re.DOTALL) if part.strip()]
-        self.update_blue_text(" ".join(narrative_parts))
+        # Join parts and strip any leading/trailing whitespace to match Edit Blue behavior
+        narrative_text = " ".join(narrative_parts).strip()
+# print(f"Narrative Text: {narrative_text}")
 
-        # Remove the automatically added response with think tags
-        if len(history.messages) >= 2:
-          new_messages = history.messages[:-2]
-          history.messages = new_messages
-
-        # Add clean narrative to history
-        # history.add_message(HumanMessage(content=user_input))
-        # history.add_message(AIMessage(content=self.current_narrative))
-
-        # Update story display
-        # self.update_story_display()
-        # self.edit_input.setPlainText(self.current_narrative)
+        # Remove last AI message if it exists
+        if history.messages and isinstance(history.messages[-1], AIMessage):
+            history._messages_proposal.pop()
+            
+        # Add AI narrative response to history without think tags
+        history.add_message(AIMessage(content=narrative_text))
 
         # Extract thinking content
         think_blocks = re.findall(r"<think>\n*(.*?)\n*</think>", response_text, flags=re.DOTALL)
         thinking_content = "\n\n".join(block.strip() for block in think_blocks)
         self.thinking_display.setText(thinking_content)
+
+        # Update blue text
+        self.update_blue_text(narrative_text)
 
         # Clear input of current tab
         if current_tab == 1:
@@ -704,20 +758,6 @@ class Narrative(GUI):  # Inherit from GUI
         self.update_blue_text(history.last_response.content)
       else:
         self.update_blue_text("")
-
-  def handle_model_response(self, response_text: str):
-    """Process and update UI with model response"""
-    # Extract narrative content (removing think tags)
-    narrative_parts = [part.strip() for part in re.split(r"\n*<think>.*?</think>\n*", response_text, flags=re.DOTALL) if part.strip()]
-
-    # Update blue text through central method
-    self.update_blue_text(" ".join(narrative_parts))
-
-    # Update thinking display
-    think_blocks = re.findall(r"<think>\n*(.*?)\n*</think>", response_text, flags=re.DOTALL)
-    thinking_content = "\n\n".join(block.strip() for block in think_blocks)
-    self.thinking_display.setText(thinking_content)
-
 
 if __name__ == "__main__":
   from PySide6.QtWidgets import QApplication

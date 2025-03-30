@@ -1,12 +1,11 @@
 # --- START OF FILE gui.py ---
-import sys
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
  QHBoxLayout, QTextEdit, QLabel, QPushButton, QCheckBox, QFrame, QTabWidget,
  QSpinBox, QSplitter, QComboBox, QSizePolicy, QToolBar, QLineEdit, QFileDialog,
  QMessageBox, QDoubleSpinBox, QDialog, QVBoxLayout, QLabel, QLineEdit, 
  QPushButton, QTextBrowser)
-from PySide6.QtCore import Qt, QUrl
-from PySide6.QtGui import QFont, QColor, QPalette, QAction, QDesktopServices
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont, QColor, QPalette, QAction
 
 class APIKeyDialog(QDialog):
   EXPECTED_KEY_LENGTH = 56  # Class variable for expected key length
@@ -242,11 +241,11 @@ class GUI(QMainWindow):
     self.context_display = QTextEdit()
     self.context_display.setReadOnly(True)
     self.context_display.setPlaceholderText(
-        "Context Monitor:\n\n"
-        "• Shows last 5 conversation pairs used for context\n"
-        "• Helps track what information the AI remembers\n"
-        "• Updates automatically as you interact\n"
-        "• Pairs: 0/5"
+"Context Monitor:\n\n"
+"• Shows last 5 conversation pairs used for context\n"
+"• Helps track what information the AI remembers\n"
+"• Updates automatically as you interact\n"
+"• Pairs: 0/5"
     )
     context_layout.addWidget(self.context_display)
 
@@ -266,11 +265,11 @@ class GUI(QMainWindow):
     self.thinking_display.setReadOnly(True)
     # Update Thinking Process placeholder
     self.thinking_display.setPlaceholderText(
-      "Thinking Process Display:\n\n"
-      "• AI's reasoning process will appear here in XML tags\n"
-      "• Example: <think>Analyzing story context and planning next scene...</think>\n"
-      "• System notifications and status updates also show here\n"
-      "• Model responses are parsed to highlight reasoning in a different color"
+"Thinking Process Display:\n\n"
+"• AI's reasoning process will appear here in XML tags\n"
+"• Example: <think>Analyzing story context and planning next scene...</think>\n"
+"• System notifications and status updates also show here\n"
+"• Model responses are parsed to highlight reasoning in a different color"
     )
     self.thinking_display.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
     thinking_layout.addWidget(self.thinking_display)
@@ -284,12 +283,12 @@ class GUI(QMainWindow):
     self.conversation_log.setReadOnly(True)
     # Update Conversation Log placeholder
     self.conversation_log.setPlaceholderText(
-      "Conversation History:\n\n"
-      "• Full dialogue between you and the AI will be recorded here\n"
-      "• User inputs are prefixed with 'User:'\n"
-      "• AI responses are prefixed with 'Assistant:'\n"
-      "• AI's thinking process is highlighted in a distinct color\n"
-      "• Helps track the evolution of your story development"
+"Conversation History:\n\n"
+"• Full dialogue between you and the AI will be recorded here\n"
+"• User inputs are prefixed with 'User:'\n"
+"• AI responses are prefixed with 'Assistant:'\n"
+"• AI's thinking process is highlighted in a distinct color\n"
+"• Helps track the evolution of your story development"
     )
     self.conversation_log.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
     conversation_layout.addWidget(self.conversation_log)
@@ -305,13 +304,13 @@ class GUI(QMainWindow):
     self.api_monitor.setReadOnly(True)
     # Update API Monitor placeholder
     self.api_monitor.setPlaceholderText(
-      "API Monitor Display:\n\n"
-      "• Shows all API interactions with the AI model\n"
-      "• Displays model name, timestamp, and token usage\n"
-      "• Helps track API costs and performance\n"
-      "• Records any API errors or warnings\n"
-      "• Use 'Clear Monitor' button to reset the display\n"
-      "• Useful for debugging and optimization"
+"API Monitor Display:\n\n"
+"• Shows all API interactions with the AI model\n"
+"• Displays model name, timestamp, and token usage\n"
+"• Helps track API costs and performance\n"
+"• Records any API errors or warnings\n"
+"• Use 'Clear Monitor' button to reset the display\n"
+"• Useful for debugging and optimization"
     )
     self.api_monitor.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
     api_layout.addWidget(self.api_monitor)
@@ -350,12 +349,12 @@ class GUI(QMainWindow):
     
     # Create a list of widget types to check
     widget_types = {
-        QTextEdit: "Text Edit",
-        QComboBox: "Combo Box",
-        QLabel: "Label",
-        QPushButton: "Button",
-        QTabWidget: "Tab Widget",
-        QLineEdit: "Line Edit"
+      QTextEdit: "Text Edit",
+      QComboBox: "Combo Box",
+      QLabel: "Label",
+      QPushButton: "Button",
+      QTabWidget: "Tab Widget",
+      QLineEdit: "Line Edit"
     }
 
     # Check each widget type
@@ -368,9 +367,9 @@ class GUI(QMainWindow):
           theme = 'dark' if self.is_dark_mode else 'light'
           widget.setStyleSheet(f"""
 QTextEdit {{
-    color: {self.colors[theme]['current'].name()};
-    background-color: {self.colors[theme]['bg'].name()};
-    border: 1px solid {self.colors[theme]['fg'].name()};
+  color: {self.colors[theme]['current'].name()};
+  background-color: {self.colors[theme]['bg'].name()};
+  border: 1px solid {self.colors[theme]['fg'].name()};
 }}
           """)
         elif isinstance(widget, (QTextEdit, QLineEdit)):
@@ -531,12 +530,15 @@ QTextEdit {{
       return
 
     # Insert validated canon in Black/White
-    for piece in self.canon_validated:
+    for i, piece in enumerate(self.canon_validated):
       format = self.story_display.currentCharFormat()
       theme = 'dark' if self.is_dark_mode else 'light'
       format.setForeground(self.colors[theme]['canon'])
       cursor.setCharFormat(format)
-      cursor.insertText(piece + "\n\n")
+      cursor.insertText(piece)
+      # Add two newlines if enumerated piece is not the last one
+      if len(piece) > 0 and i < len(self.canon_validated) - 1:
+          cursor.insertText("\n\n")
 
     # Insert current narrative in blue
     if self.current_narrative:
@@ -544,7 +546,7 @@ QTextEdit {{
       theme = 'dark' if self.is_dark_mode else 'light'
       format.setForeground(self.colors[theme]['current'])
       cursor.setCharFormat(format)
-      cursor.insertText(self.current_narrative + "\n")
+      cursor.insertText(self.current_narrative)
 
     self.story_display.setTextCursor(cursor)
 
