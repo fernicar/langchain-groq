@@ -146,6 +146,18 @@ python main.py
 MIT License
 
 ## Acknowledgments
-- Built with LangChain and Groq API
-- UI powered by Qt/PySide6
-- Special thanks to our contributors
+This project builds upon the foundations of the following projects:
+- [LangChain](https://github.com/langchain-ai/langchain) - Framework for developing applications powered by language models
+- [Groq](https://github.com/groq/groq-python) - Python client library for the Groq API
+- [PySide6/Qt](https://doc.qt.io/qtforpython-6/) - Modern UI framework for Python applications
+- [TINS Edition](https://ThereIsNoSource.com) - Zero Source Specification platform that enables:
+  - Complete application reconstruction from specification
+  - Self-documenting architecture through detailed markdown
+  - Future-proof design adaptable to advancing LLM capabilities
+  - Progressive enhancement support as LLM technology evolves
+  - Platform-agnostic implementation guidelines
+  - Flexible technology stack selection within specified constraints
+  - Comprehensive behavioral specifications for consistent rebuilds
+  - Automatic adaptation to newer LLM models and capabilities
+
+The project combines these technologies to create a focused, distraction-free environment for AI-assisted creative writing, with an emphasis on narrative development and story coherence.
