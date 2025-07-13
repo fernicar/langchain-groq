@@ -437,11 +437,7 @@ class Narrative(GUI):  # Inherit from GUI
 
   def commit_blue_text(self):
     """Commit current blue text to canon"""
-    config = {"configurable": {"session_id": self.session_id}}
-    history = self.conversation._merge_configs(config)["configurable"]["message_history"]
-    
-    # Commit the current proposal
-    history.commit_proposal()
+    self.simulate_conversation_turn(self.current_narrative)
     
     # Your existing commit code...
     self.canon_validated.append(self.current_narrative)

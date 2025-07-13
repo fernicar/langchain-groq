@@ -29,6 +29,11 @@ class TestNarrativeMemory(unittest.TestCase):
         self.assertIn("This is a test proposal.", self.app.canon_validated)
         self.assertEqual(self.app.current_narrative, "")
 
+        # Verify that the message was added to the history
+        history = self.app.conversation.memory
+        self.assertEqual(len(history.messages), 2)
+        self.assertEqual(history.messages[-1].content, "This is a test proposal.")
+
     def test_discard_last_conversation_pair(self):
         # 1. Set up the initial state
         self.app.current_narrative = "This is a test proposal."
