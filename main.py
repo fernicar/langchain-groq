@@ -90,7 +90,7 @@ class TokenWindowDualStateMemory(BaseChatMessageHistory):
 
     # Process messages in reverse (newest first)
     for message in reversed(messages):
-      tokens = self._count_tokens(message.content)
+      tokens = self._count_tokens(str(message.content))
 
       # If adding this message would exceed max tokens, stop
       if current_tokens + tokens > self.max_tokens:
@@ -285,7 +285,7 @@ class Narrative(GUI):  # Inherit from GUI
 
     prompts = self.prompt_manager.get_all_prompts()
     self.prompt_selector.clear()
-    self.prompt_selector.addItems(prompts.keys())
+    self.prompt_selector.addItems(list(prompts.keys()))
     self.prompt_selector.setCurrentText(self.prompt_manager.prompts["active_prompt"])
 
     # Set initial system prompt text
@@ -318,7 +318,7 @@ class Narrative(GUI):  # Inherit from GUI
 
     llm = ChatGroq(
       api_key=os.environ["GROQ_API_KEY"],
-      model_name=selected_model,
+      model=selected_model,
       temperature=self.temperature,
       max_tokens=self.max_tokens,
       streaming=False,
@@ -417,9 +417,9 @@ class Narrative(GUI):  # Inherit from GUI
     """Simulate a conversation turn with the given content"""
     if hasattr(self, "conversation"):
       # Create config with session_id
-      config = {"configurable": {"session_id": self.session_id}}
-      # Get history through the config mechanism
-      history = self.conversation._merge_configs(config)["configurable"]["message_history"]
+      config_dict = self.conversation._merge_configs({"configurable": {"session_id": self.session_id}})
+      configurable = config_dict.get("configurable", {})
+      history = configurable.get("message_history")
 
       # Strip out think XML tags before adding to history
       cleaned_content = re.sub(r"\n*<think>.*?</think>\n*", "", content, flags=re.DOTALL).strip()
@@ -446,8 +446,9 @@ class Narrative(GUI):  # Inherit from GUI
 
   def discard_last_conversation_pair(self):
     """Remove the last user input and AI response pair from history"""
-    config = {"configurable": {"session_id": self.session_id}}
-    history = self.conversation._merge_configs(config)["configurable"]["message_history"]
+    config_dict = self.conversation._merge_configs({"configurable": {"session_id": self.session_id}})
+    configurable = config_dict.get("configurable", {})
+    history = configurable.get("message_history")
     
     # Discard the current proposal
     history.discard_proposal()
@@ -465,8 +466,9 @@ class Narrative(GUI):  # Inherit from GUI
   def update_context_display(self):
     """Update the context monitor display"""
     if hasattr(self, "conversation"):
-      config = {"configurable": {"session_id": self.session_id}}
-      history = self.conversation._merge_configs(config)["configurable"]["message_history"]
+      config_dict = self.conversation._merge_configs({"configurable": {"session_id": self.session_id}})
+      configurable = config_dict.get("configurable", {})
+      history = configurable.get("message_history")
       
       # Use committed messages instead of proposal state
       messages = history._messages_committed
@@ -526,8 +528,9 @@ class Narrative(GUI):  # Inherit from GUI
       elif current_tab == 2:  # Rewrite previous section
         user_input = self.rewrite_input.toPlainText().strip()
         # Discard current proposal before rewriting
-        config = {"configurable": {"session_id": self.session_id}}
-        history = self.conversation._merge_configs(config)["configurable"]["message_history"]
+        config_dict = self.conversation._merge_configs({"configurable": {"session_id": self.session_id}})
+        configurable = config_dict.get("configurable", {})
+        history = configurable.get("message_history")
         history.discard_proposal()  # This will restore from committed state
 
       # Wrap input with XML tags if specified
@@ -537,8 +540,9 @@ class Narrative(GUI):  # Inherit from GUI
         self.current_user_input = user_input  # track last user input
 
         # Get history before the new response
-        config = {"configurable": {"session_id": self.session_id}}
-        history = self.conversation._merge_configs(config)["configurable"]["message_history"]
+        config_dict = self.conversation._merge_configs({"configurable": {"session_id": self.session_id}})
+        configurable = config_dict.get("configurable", {})
+        history = configurable.get("message_history")
 
         # Backup current state before getting LLM response
         history.prepare_for_response()
