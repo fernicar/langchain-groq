@@ -20,6 +20,7 @@ from langchain_core.language_models import BaseLanguageModel
 from tiktoken import encoding_for_model
 
 from gui import GUI, APIKeyDialog  # Import the GUI class
+from langchain.memory import ConversationSummaryBufferMemory
 
 
 class APIMonitorCallback(BaseCallbackHandler):
@@ -151,90 +152,6 @@ class SystemPromptManager:
     return False
 
 
-class TokenWindowDualStateMemory(BaseChatMessageHistory):
-  """Memory implementation that maintains a token window and dual state management"""
-    
-  def __init__(self, llm: BaseLanguageModel, max_tokens: int = 12000):
-    self.max_tokens = max_tokens
-    self.llm = llm
-    # Use GPT-3.5 tokenizer as a reasonable default
-    self.encoding = encoding_for_model("gpt-3.5-turbo")
-    
-    self._messages_committed = []  # Committed/backup state
-    self._messages_proposal = []   # Current proposal state
-    self._has_pending_proposal = False
-
-  @property
-  def messages(self) -> List[BaseMessage]:
-    """Return current active messages (proposal if exists, otherwise committed)"""
-    return self._messages_proposal if self._has_pending_proposal else self._messages_committed
-  
-  @messages.setter
-  def messages(self, messages: List[BaseMessage]):
-    """Set messages and mark as proposal"""
-    self._messages_proposal = messages
-    self._has_pending_proposal = True
-    self._truncate_messages(self._messages_proposal)
-  
-  def add_message(self, message: BaseMessage) -> None:
-    """Add message to proposal state"""
-    if not self._has_pending_proposal:
-      # If no proposal exists, create one from current committed state
-      self._messages_proposal = self._messages_committed.copy()
-      self._has_pending_proposal = True
-    self._messages_proposal.append(message)
-    self._truncate_messages(self._messages_proposal)
-  
-  def prepare_for_response(self) -> None:
-    """Backup current state before LLM response"""
-    self._messages_committed = self.messages.copy()
-    self._has_pending_proposal = False
-  
-  def commit_proposal(self) -> None:
-    """Commit current proposal to backup state"""
-    if self._has_pending_proposal:
-      self._messages_committed = self._messages_proposal.copy()
-      self._has_pending_proposal = False
-  
-  def discard_proposal(self) -> None:
-    """Discard current proposal and restore from backup"""
-    self._messages_proposal = self._messages_committed.copy()
-    self._has_pending_proposal = False
-  
-  def clear(self) -> None:
-    """Clear all messages"""
-    self._messages_committed = []
-    self._messages_proposal = []
-    self._has_pending_proposal = False
-  
-  def _count_tokens(self, text: str) -> int:
-    """Count tokens in a text string"""
-    return len(self.encoding.encode(text))
-  
-  def _truncate_messages(self, messages: List[BaseMessage]) -> None:
-    """Remove oldest messages until total tokens is under max_tokens"""
-    current_tokens = 0
-    truncated_messages = []
-      
-    # Process messages in reverse (newest first)
-    for message in reversed(messages):
-      tokens = self._count_tokens(message.content)
-      
-      # If adding this message would exceed max tokens, stop
-      if current_tokens + tokens > self.max_tokens:
-          break
-          
-      # Add message to start of list (maintaining original order)
-      truncated_messages.insert(0, message)
-      current_tokens += tokens
-    
-    # Update the appropriate message list
-    if messages is self._messages_proposal:
-      self._messages_proposal = truncated_messages
-    else:
-      self._messages_committed = truncated_messages
-
-
 class Narrative(GUI):  # Inherit from GUI
   def __init__(self):
     super().__init__()
@@ -337,7 +254,7 @@ class Narrative(GUI):  # Inherit from GUI
       history = self.primed_history
       self.primed_history = None
     else:
-      history = TokenWindowDualStateMemory(llm, max_tokens=12000)
+      history = ConversationSummaryBufferMemory(llm=llm, max_token_limit=12000, memory_key="history", return_messages=True)
 
     self.conversation = RunnableWithMessageHistory(
       chain,
@@ -440,7 +357,8 @@ class Narrative(GUI):  # Inherit from GUI
     history = self.conversation._merge_configs(config)["configurable"]["message_history"]
     
     # Commit the current proposal
-    history.commit_proposal()
+    if hasattr(history, 'commit_proposal'):
+      history.commit_proposal()
     
     # Your existing commit code...
     self.canon_validated.append(self.current_narrative)
@@ -453,7 +371,8 @@ class Narrative(GUI):  # Inherit from GUI
     history = self.conversation._merge_configs(config)["configurable"]["message_history"]
     
     # Discard the current proposal
-    history.discard_proposal()
+    if hasattr(history, 'discard_proposal'):
+      history.discard_proposal()
     
     # Update UI to reflect the committed state
     if history.messages:
@@ -472,16 +391,16 @@ class Narrative(GUI):  # Inherit from GUI
       history = self.conversation._merge_configs(config)["configurable"]["message_history"]
       
       # Use committed messages instead of proposal state
-      messages = history._messages_committed
+      messages = history.chat_memory.messages
       
       # Calculate token count if using TokenWindowMemory
       token_count = None
-      if isinstance(history, TokenWindowDualStateMemory):
-        token_count = sum(history._count_tokens(msg.content) for msg in messages)
+      if isinstance(history, ConversationSummaryBufferMemory):
+        token_count = history.llm.get_num_tokens_from_messages(messages)
       
       # Update tab name with appropriate count
       if token_count is not None:
-        self.right_tab_widget.setTabText(0, f"Context ({token_count}/{history.max_tokens} tokens)")
+        self.right_tab_widget.setTabText(0, f"Context ({token_count}/{history.max_token_limit} tokens)")
       else:
         pair_count = len(messages) // 2
         self.right_tab_widget.setTabText(0, f"Context {pair_count}/5")
@@ -531,7 +450,8 @@ class Narrative(GUI):  # Inherit from GUI
         # Discard current proposal before rewriting
         config = {"configurable": {"session_id": self.session_id}}
         history = self.conversation._merge_configs(config)["configurable"]["message_history"]
-        history.discard_proposal()  # This will restore from committed state
+        if hasattr(history, 'discard_proposal'):
+          history.discard_proposal()  # This will restore from committed state
 
       # Wrap input with XML tags if specified
       xml_tag = self.xml_tag_input.text().strip()
@@ -544,7 +464,8 @@ class Narrative(GUI):  # Inherit from GUI
         history = self.conversation._merge_configs(config)["configurable"]["message_history"]
 
         # Backup current state before getting LLM response
-        history.prepare_for_response()
+        if hasattr(history, 'prepare_for_response'):
+          history.prepare_for_response()
 
         # # Add user message to history
         # history.add_message(HumanMessage(content=user_input))
@@ -567,8 +488,8 @@ class Narrative(GUI):  # Inherit from GUI
         narrative_text = " ".join(narrative_parts).strip()
 
         # Remove last AI message if it exists
-        if history.messages and isinstance(history.messages[-1], AIMessage):
-            history._messages_proposal.pop()
+        if history.chat_memory.messages and isinstance(history.chat_memory.messages[-1], AIMessage):
+            history.chat_memory.messages.pop()
             
         # Add AI narrative response to history without think tags
         history.add_message(AIMessage(content=narrative_text))
